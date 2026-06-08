@@ -41,14 +41,17 @@ class Product(object):
     """
     The product class is for handling products to find and insert
     """
-    def __init__(self, database, url):
+    def __init__(self, database, url, timeout=30):
         # Set variables for class product.
         self.database = database
         self.url = url
+        if timeout <= 0:
+            raise ValueError('timeout must be positive')
+        self.timeout = timeout
 
     def read(self):
         opener = urllib2.build_opener()
-        return opener.open(self.build_request()).read()
+        return opener.open(self.build_request(), timeout=self.timeout).read()
 
     def build_request(self):
         return urllib2.Request(self.url)

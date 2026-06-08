@@ -27,6 +27,20 @@ class FakeProductDatabase(object):
         self.inserts.append((name, link, price))
 
 
+class FakeResponse(object):
+    def read(self):
+        return 'response body'
+
+
+class FakeOpener(object):
+    def __init__(self):
+        self.calls = []
+
+    def open(self, request, timeout=None):
+        self.calls.append((request, timeout))
+        return FakeResponse()
+
+
 class FakeAnchor(object):
     def __init__(self, name, href):
         self.contents = [name]
@@ -121,6 +135,25 @@ class DatabaseTests(unittest.TestCase):
 
 
 class ProductParserTests(unittest.TestCase):
+    def test_read_uses_bounded_timeout(self):
+        opener = FakeOpener()
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda: opener
+
+        try:
+            product = scrape.Product(None, 'https://example.test/source', timeout=12)
+            self.assertEqual('response body', product.read())
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertEqual(1, len(opener.calls))
+        request, timeout = opener.calls[0]
+        self.assertEqual('https://example.test/source', request.get_full_url())
+        self.assertEqual(12, timeout)
+
+    def test_product_rejects_non_positive_timeout(self):
+        self.assertRaises(ValueError, scrape.Product, None, 'https://example.test/source', timeout=0)
+
     def test_build_request_uses_plain_url_without_spoofing_headers(self):
         product = scrape.Product(None, 'https://example.test/source')
 

@@ -2,6 +2,8 @@
 
 ## 2026-06-08
 
+- Added a bounded default network timeout for product reads with Python 2 unit
+  coverage.
 - Added `make check` as the shared repository verification alias.
 - Added mocked parser coverage for nested `<b>` prices, plain price spans, and
   incomplete product rows.

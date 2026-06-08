@@ -57,6 +57,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   inserts parsed products.
 - The default request path does not set fake browser, referer, or randomized
   tracking headers.
+- Live fetches use a bounded default timeout so stalled requests do not hang
+  forever.
 
 ## Testing and Verification
 
@@ -82,6 +84,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-08-scrape-electrical-baseline.md` for the canonical
   scraper/database safety baseline.
+- See `docs/plans/2026-06-08-network-timeout.md` for the network timeout
+  guard.
 
 ## Contributing
 

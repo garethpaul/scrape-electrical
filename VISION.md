@@ -17,6 +17,7 @@ Priority:
 - Preserve the scrape-to-PostgreSQL intent
 - Keep database credentials passed by the operator, not committed
 - Avoid encouraging bypass headers or aggressive scraping
+- Bound live network reads so stalled targets do not hang indefinitely
 - Keep completed maintenance plans under `docs/plans`
 - Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
 
