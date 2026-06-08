@@ -39,7 +39,6 @@ Canonical security policy and reporting:
 
 - [`SECURITY.md`](SECURITY.md)
 
-
 Scrapers can overload sites and raw SQL can corrupt or expose data. This script
 should not be run against third-party sites without permission, and database
 writes should be parameterized before production use.
