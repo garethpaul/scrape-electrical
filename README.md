@@ -1,3 +1,8 @@
+# scrape-electrical
+
+<!-- README-OVERVIEW-IMAGE -->
+![Project overview](docs/readme-overview.svg)
+
 Given an input as follows output data to a postgresql database.
 
 <code>
