@@ -1,4 +1,3 @@
-from lib import url
 from bs4 import BeautifulSoup
 import psycopg2
 import argparse
