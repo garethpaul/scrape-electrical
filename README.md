@@ -70,4 +70,4 @@ Keep changes small and tied to the project that is already present in this repos
 
 Prior README summary:
 
-> scrape-electrical <!-- README-OVERVIEW-IMAGE --> Given an input as follows output data to a postgresql database. <code> python scrape.py --dbname dbname --dbuser dbuser --dbpassword dbpassword
+> scrape-electrical Given an input as follows output data to a postgresql database. <code> python scrape.py --dbname dbname --dbuser dbuser --dbpassword dbpassword
