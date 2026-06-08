@@ -1,4 +1,3 @@
-import random
 import re
 import urllib2
 
@@ -48,12 +47,11 @@ class Product(object):
         self.url = url
 
     def read(self):
-        req = urllib2.Request(self.url)
-        req.add_header('User-Agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_1; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/4.0.212.0 Safari/532.0')
-        req.add_header('Referer', 'http://www.google.com/url?sa=t&source=web&ct=res&cd=7')
-        req.add_header('DNT', random.choice([1,0]))               
         opener = urllib2.build_opener()
-        return opener.open(req).read()
+        return opener.open(self.build_request()).read()
+
+    def build_request(self):
+        return urllib2.Request(self.url)
 
     def find(self):
         # find products via self.url and argument --url 

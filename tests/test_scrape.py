@@ -121,6 +121,16 @@ class DatabaseTests(unittest.TestCase):
 
 
 class ProductParserTests(unittest.TestCase):
+    def test_build_request_uses_plain_url_without_spoofing_headers(self):
+        product = scrape.Product(None, 'https://example.test/source')
+
+        request = product.build_request()
+
+        self.assertEqual('https://example.test/source', request.get_full_url())
+        self.assertNotIn('User-agent', request.headers)
+        self.assertNotIn('Referer', request.headers)
+        self.assertNotIn('Dnt', request.headers)
+
     def test_find_products_inserts_bold_and_plain_prices(self):
         database = FakeProductDatabase()
         product = scrape.Product(database, 'https://example.test/source')

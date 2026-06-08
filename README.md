@@ -12,13 +12,21 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 ## Repository Contents
 
 - `README.md` - project overview and local usage notes
+- `CHANGES.md` - maintenance history for scraper safety checks
+- `Makefile` - local verification entry points
+- `docs/plans` - completed maintenance plans for the current baseline
+- `plans` - historical implementation notes
+- `requirements.txt` - optional scraper/database dependencies
+- `scripts` - documentation-plan validators
+- `scrape.py` - scraper and PostgreSQL insert implementation
+- `tests` - Python 2 parser and database unit tests
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
 
 Additional scan context:
 
 - Source directories: no top-level source directories detected
-- Dependency and build manifests: none detected
+- Dependency and build manifests: requirements.txt
 - Entry points or build surfaces: none detected
 - Test-looking files: tests/test_scrape.py
 
@@ -47,11 +55,14 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Confirm target-site permission and rate limits before scraping.
 - Use test data first; the script writes to PostgreSQL when `Product.find()`
   inserts parsed products.
+- The default request path does not set fake browser, referer, or randomized
+  tracking headers.
 
 ## Testing and Verification
 
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
+- `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
@@ -69,6 +80,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
+- See `docs/plans/2026-06-08-scrape-electrical-baseline.md` for the canonical
+  scraper/database safety baseline.
 
 ## Contributing
 

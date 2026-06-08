@@ -14,3 +14,7 @@
 - Replaced string-built insert values with parameterized SQL and validated table
   names.
 - Added `make verify`, dependency notes, and Python bytecode ignores.
+- Removed spoofed request headers from the default fetch path and added unit
+  coverage for plain request construction.
+- Added canonical `docs/plans` coverage and a Python 2 docs-plan checker under
+  `make check`.

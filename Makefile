@@ -2,6 +2,7 @@
 
 lint:
 	python2 -m py_compile scrape.py
+	python2 scripts/check-docs-plans.py
 
 test:
 	python2 -m unittest discover -s tests
