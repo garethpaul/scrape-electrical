@@ -1,5 +1,8 @@
 # scrape-electrical
 
+<!-- README-OVERVIEW-IMAGE -->
+![Project overview](docs/readme-overview.svg)
+
 ## Overview
 
 `garethpaul/scrape-electrical` is a public sample, documentation, or utility project. Personal scrape for * electrical with a given URL
@@ -68,4 +71,3 @@ Keep changes small and tied to the project that is already present in this repos
 Prior README summary:
 
 > scrape-electrical <!-- README-OVERVIEW-IMAGE --> Given an input as follows output data to a postgresql database. <code> python scrape.py --dbname dbname --dbuser dbuser --dbpassword dbpassword
-
