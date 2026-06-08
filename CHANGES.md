@@ -2,6 +2,10 @@
 
 ## 2026-06-08
 
+- Added mocked parser coverage for nested `<b>` prices, plain price spans, and
+  incomplete product rows.
+- Fixed `Product.find()` so products are inserted for both price markup shapes
+  without relying on a broad `except` path.
 - Added Python 2 unit tests for SQL insert behavior without live network or
   PostgreSQL connections.
 - Made `scrape.py` importable without optional scraper/database dependencies

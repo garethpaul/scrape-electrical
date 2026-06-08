@@ -57,25 +57,40 @@ class Product(object):
 
     def find(self):
         # find products via self.url and argument --url 
-        from bs4 import BeautifulSoup
-        page = BeautifulSoup(self.read())
+        try:
+            from bs4 import BeautifulSoup
+            page = BeautifulSoup(self.read())
+            self.find_products(page)
+        finally:
+            self.database.close()
+
+    def find_products(self, page):
         for product in page.findAll('div', {'class':'zg_item_normal'}):
-            p = product.find('div', {'class': 'zg_title'}).find('a')
-            p_name =  p.contents[0]
-            p_link =  p['href'].strip()
-            p_price = ''
-            price = product.find('span', {'class', 'price'}).find('b')
-            # try to find the price inside the <span class='price'><b>$0.00</b></span>
-            try:
-                p_price = price.text
-            # try to find the product if the above doesnt exist
-            # <span class='price'> $0.00 </span>
-            except:
-                p_price = product.find('span', {'class': 'price'}).text
-                # insert the data into the database
-                self.database.insert(name=p_name, link=p_link, price=p_price)
-        # close the database
-        self.database.close()
+            fields = self.product_fields(product)
+            if fields is None:
+                continue
+
+            self.database.insert(name=fields[0], link=fields[1], price=fields[2])
+
+    def product_fields(self, product):
+        title = product.find('div', {'class': 'zg_title'})
+        if title is None:
+            return None
+
+        link = title.find('a')
+        if link is None or not link.contents:
+            return None
+
+        price = product.find('span', {'class': 'price'})
+        if price is None:
+            return None
+
+        price_text = price.text
+        bold_price = price.find('b')
+        if bold_price is not None:
+            price_text = bold_price.text
+
+        return (link.contents[0], link['href'].strip(), price_text)
 
 def main(database, url):
     # put database with Product and include the url

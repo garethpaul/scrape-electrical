@@ -24,7 +24,7 @@ Next priorities:
 - Add argument parsing and a dry-run mode
 - Replace string-built SQL with parameterized queries
 - Document target-site permission, rate limits, and data retention
-- Add mocked HTML and database tests
+- Expand mocked HTML and database tests before parser changes
 
 Contribution rules:
 

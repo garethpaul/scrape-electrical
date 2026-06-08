@@ -20,7 +20,7 @@ Additional scan context:
 - Source directories: no top-level source directories detected
 - Dependency and build manifests: none detected
 - Entry points or build surfaces: none detected
-- Test-looking files: no obvious test files detected
+- Test-looking files: tests/test_scrape.py
 
 ## Getting Started
 
@@ -50,7 +50,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 ## Testing and Verification
 
-- `make verify` runs Python 2 syntax checks and mocked database unit tests.
+- `make verify` runs Python 2 syntax checks plus mocked database and parser
+  unit tests.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
