@@ -82,6 +82,13 @@ class Product(object):
         if link is None or not link.contents:
             return None
 
+        try:
+            href = link['href']
+        except KeyError:
+            return None
+        if not href or not href.strip():
+            return None
+
         price = product.find('span', {'class': 'price'})
         if price is None:
             return None
@@ -91,7 +98,7 @@ class Product(object):
         if bold_price is not None:
             price_text = bold_price.text
 
-        return (link.contents[0], link['href'].strip(), price_text)
+        return (link.contents[0], href.strip(), price_text)
 
 def main(database, url):
     # put database with Product and include the url

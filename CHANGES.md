@@ -2,6 +2,8 @@
 
 ## 2026-06-08
 
+- Skipped product cards with missing or blank links and added parser coverage
+  for incomplete anchors.
 - Added a bounded default network timeout for product reads with Python 2 unit
   coverage.
 - Added `make check` as the shared repository verification alias.

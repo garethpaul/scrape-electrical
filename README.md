@@ -59,11 +59,15 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   tracking headers.
 - Live fetches use a bounded default timeout so stalled requests do not hang
   forever.
+- Product cards without usable links are skipped rather than aborting the
+  scrape.
 
 ## Testing and Verification
 
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
+- Parser tests cover missing prices, missing titles, and missing or blank
+  product links.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -86,6 +90,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   scraper/database safety baseline.
 - See `docs/plans/2026-06-08-network-timeout.md` for the network timeout
   guard.
+- See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link
+  handling.
 
 ## Contributing
 

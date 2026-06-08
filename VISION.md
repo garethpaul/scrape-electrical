@@ -18,6 +18,7 @@ Priority:
 - Keep database credentials passed by the operator, not committed
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
+- Skip incomplete product cards instead of aborting the scrape
 - Keep completed maintenance plans under `docs/plans`
 - Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
 

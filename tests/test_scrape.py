@@ -3,6 +3,9 @@ import unittest
 import scrape
 
 
+MISSING_HREF = object()
+
+
 class FakeCursor(object):
     def __init__(self):
         self.calls = []
@@ -42,12 +45,12 @@ class FakeOpener(object):
 
 
 class FakeAnchor(object):
-    def __init__(self, name, href):
+    def __init__(self, name, href=MISSING_HREF):
         self.contents = [name]
         self.href = href
 
     def __getitem__(self, key):
-        if key == 'href':
+        if key == 'href' and self.href is not MISSING_HREF:
             return self.href
         raise KeyError(key)
 
@@ -79,10 +82,10 @@ class FakePrice(object):
 
 
 class FakeProductNode(object):
-    def __init__(self, name=None, href=None, price_text=None, bold_price=None):
+    def __init__(self, name=None, href=MISSING_HREF, price_text=None, bold_price=None):
         self.title = None
         self.price = None
-        if name is not None and href is not None:
+        if name is not None:
             self.title = FakeTitle(FakeAnchor(name, href))
         if price_text is not None:
             self.price = FakePrice(price_text, bold_price)
@@ -187,6 +190,8 @@ class ProductParserTests(unittest.TestCase):
         product = scrape.Product(database, 'https://example.test/source')
         page = FakePage([
             FakeProductNode('Missing price', 'https://example.test/item'),
+            FakeProductNode('Missing href', price_text='$4.00'),
+            FakeProductNode('Blank href', '', '$5.00'),
             FakeProductNode(price_text='$3.00'),
         ])
 
