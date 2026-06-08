@@ -1,8 +1,5 @@
-from lib import url
-from bs4 import BeautifulSoup
-import psycopg2
-import argparse
 import random
+import re
 import urllib2
 
 class Database(object):
@@ -16,6 +13,7 @@ class Database(object):
         self.dbpassword = dbpassword
         self.dbhost = dbhost
         self.tbname = tbname
+        import psycopg2
         self.conn = psycopg2.connect("user=%s password=%s host=%s dbname=%s" % (self.dbuser, self.dbpassword, self.dbhost, self.dbname))
         self.cur = self.conn.cursor()
 
@@ -25,9 +23,21 @@ class Database(object):
         self.cur.close()
 
     def insert(self, name, link, price):
-        self.cur.execute("INSERT INTO " + self.tbname + " (p_name, p_link, p_price) VALUES ('" + name + "','" + link + "','" + price.replace('$', '') + "')")
+        table_name = self.safe_table_name()
+        self.cur.execute(
+            "INSERT INTO %s (p_name, p_link, p_price) VALUES (%%s, %%s, %%s)" % table_name,
+            (name, link, self.normalized_price(price))
+        )
         self.conn.commit()
-        
+
+    def safe_table_name(self):
+        if not re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', self.tbname):
+            raise ValueError('unsafe table name: %s' % self.tbname)
+        return self.tbname
+
+    def normalized_price(self, price):
+        return price.replace('$', '').strip()
+
 class Product(object):
     """
     The product class is for handling products to find and insert
@@ -47,6 +57,7 @@ class Product(object):
 
     def find(self):
         # find products via self.url and argument --url 
+        from bs4 import BeautifulSoup
         page = BeautifulSoup(self.read())
         for product in page.findAll('div', {'class':'zg_item_normal'}):
             p = product.find('div', {'class': 'zg_title'}).find('a')

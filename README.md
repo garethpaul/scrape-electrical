@@ -27,23 +27,30 @@ Additional scan context:
 ### Prerequisites
 
 - Git
+- Python 2.7
+- PostgreSQL client access for live database writes
 
 ### Setup
 
 ```bash
 git clone https://github.com/garethpaul/scrape-electrical.git
 cd scrape-electrical
+python2 -m pip install -r requirements.txt
 ```
 
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
 
 ## Running or Using the Project
 
-- No single runtime entry point was identified. Start by reading the source files and manifests listed above.
+- Import `scrape.py` from a small driver that creates a `Database` instance and
+  passes it to `main(database, url)`.
+- Confirm target-site permission and rate limits before scraping.
+- Use test data first; the script writes to PostgreSQL when `Product.find()`
+  inserts parsed products.
 
 ## Testing and Verification
 
-- No dedicated automated test command was identified from the checked-in files. Verify changes by running the relevant build or manually exercising the sample.
+- `make verify` runs Python 2 syntax checks and mocked database unit tests.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
