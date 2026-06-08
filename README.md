@@ -50,7 +50,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 ## Testing and Verification
 
-- `make verify` runs Python 2 syntax checks plus mocked database and parser
+- `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

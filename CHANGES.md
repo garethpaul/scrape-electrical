@@ -2,6 +2,7 @@
 
 ## 2026-06-08
 
+- Added `make check` as the shared repository verification alias.
 - Added mocked parser coverage for nested `<b>` prices, plain price spans, and
   incomplete product rows.
 - Fixed `Product.find()` so products are inserted for both price markup shapes
