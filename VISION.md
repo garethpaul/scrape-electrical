@@ -45,3 +45,6 @@ writes should be parameterized before production use.
 - Credential files
 - Anti-blocking or evasion behavior
 - Large scraped datasets
+
+This list is a roadmap guardrail, not a permanent rule.
+Strong user demand and strong technical rationale can change it.
