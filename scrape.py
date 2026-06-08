@@ -3,7 +3,17 @@ from bs4 import BeautifulSoup
 import psycopg2
 import argparse
 import random
+import re
 import urllib2
+
+VALID_IDENTIFIER = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def quote_identifier(identifier):
+    if not VALID_IDENTIFIER.match(identifier):
+        raise ValueError('invalid database identifier: %s' % identifier)
+    return '"%s"' % identifier
+
 
 class Database(object):
     """
@@ -15,7 +25,7 @@ class Database(object):
         self.dbuser = dbuser
         self.dbpassword = dbpassword
         self.dbhost = dbhost
-        self.tbname = tbname
+        self.tbname = quote_identifier(tbname)
         self.conn = psycopg2.connect("user=%s password=%s host=%s dbname=%s" % (self.dbuser, self.dbpassword, self.dbhost, self.dbname))
         self.cur = self.conn.cursor()
 
@@ -25,7 +35,10 @@ class Database(object):
         self.cur.close()
 
     def insert(self, name, link, price):
-        self.cur.execute("INSERT INTO " + self.tbname + " (p_name, p_link, p_price) VALUES ('" + name + "','" + link + "','" + price.replace('$', '') + "')")
+        self.cur.execute(
+            "INSERT INTO %s (p_name, p_link, p_price) VALUES (%%s, %%s, %%s)" % self.tbname,
+            (name, link, price.replace('$', ''))
+        )
         self.conn.commit()
         
 class Product(object):
