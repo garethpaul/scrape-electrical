@@ -25,6 +25,12 @@ class ClosingCursor(FakeCursor):
         self.close_order.append('cursor')
 
 
+class FailingClosingCursor(ClosingCursor):
+    def close(self):
+        super(FailingClosingCursor, self).close()
+        raise RuntimeError('cursor close failed')
+
+
 class FakeConnection(object):
     def __init__(self):
         self.commits = 0
@@ -208,6 +214,16 @@ class DatabaseTests(unittest.TestCase):
         database.conn = ClosingConnection(close_order)
 
         database.close()
+
+        self.assertEqual(['cursor', 'connection'], close_order)
+
+    def test_close_closes_connection_when_cursor_close_fails(self):
+        close_order = []
+        database = database_with('products')
+        database.cur = FailingClosingCursor(close_order)
+        database.conn = ClosingConnection(close_order)
+
+        self.assertRaises(RuntimeError, database.close)
 
         self.assertEqual(['cursor', 'connection'], close_order)
 

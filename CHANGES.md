@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Ensured database connection cleanup is attempted even when cursor cleanup
+  fails, with Python 2 regression coverage.
 - Closed scraper database cursors before connections and added Python 2
   regression coverage for DB-API cleanup order.
 - Switched `Database` initialization to pass PostgreSQL connection fields to
