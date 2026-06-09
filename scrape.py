@@ -69,10 +69,21 @@ class Product(object):
     def __init__(self, database, url, timeout=30):
         # Set variables for class product.
         self.database = database
-        self.url = url
+        self.url = self.normalized_source_url(url)
         if timeout <= 0:
             raise ValueError('timeout must be positive')
         self.timeout = timeout
+
+    def normalized_source_url(self, url):
+        if not url or not url.strip():
+            raise ValueError('source URL must use http or https and include a host')
+
+        source_url = url.strip()
+        parsed_url = urlparse(source_url)
+        if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
+            raise ValueError('source URL must use http or https and include a host')
+
+        return source_url
 
     def read(self):
         opener = urllib2.build_opener()

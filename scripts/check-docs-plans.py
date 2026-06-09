@@ -49,6 +49,12 @@ if 'from urlparse import urljoin, urlparse' not in scrape_source:
     failures.append('scrape.py must import Python 2 URL normalization helpers')
 if 'def normalized_link(self, href):' not in scrape_source:
     failures.append('scrape.py must normalize parsed product links before database insertion')
+if 'self.url = self.normalized_source_url(url)' not in scrape_source:
+    failures.append('scrape.py must validate the source URL before network reads')
+if 'def normalized_source_url(self, url):' not in scrape_source:
+    failures.append('scrape.py must normalize and validate source URLs')
+if "raise ValueError('source URL must use http or https and include a host')" not in scrape_source:
+    failures.append('scrape.py must reject non-HTTP(S) source URLs before urllib2 opens them')
 if "parsed_url.scheme not in ('http', 'https')" not in scrape_source:
     failures.append('scrape.py must reject parsed product links that are not HTTP(S)')
 if 'urljoin(self.url, href.strip())' not in scrape_source:
@@ -79,6 +85,8 @@ if 'Status: Completed' not in cli_plan or '--dry-run' not in cli_plan:
 security = read(os.path.join(ROOT, 'SECURITY.md'))
 if 'non-web link schemes' not in security or 'relative product links' not in security:
     failures.append('SECURITY.md must document product link scheme and relative URL boundaries')
+if 'Source page URLs must also use HTTP(S)' not in security:
+    failures.append('SECURITY.md must document source URL scheme validation')
 
 if failures:
     print('Documentation plan checks failed:\n- %s' % '\n- '.join(failures), file=sys.stderr)

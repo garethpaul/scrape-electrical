@@ -327,6 +327,22 @@ class ProductParserTests(unittest.TestCase):
     def test_product_rejects_non_positive_timeout(self):
         self.assertRaises(ValueError, scrape.Product, None, 'https://example.test/source', timeout=0)
 
+    def test_product_rejects_non_web_source_urls(self):
+        for source_url in [
+            '',
+            '   ',
+            'file:///etc/passwd',
+            'javascript:alert(1)',
+            'example.test/source',
+            'https:///missing-host',
+        ]:
+            self.assertRaises(ValueError, scrape.Product, None, source_url)
+
+    def test_product_strips_source_url_whitespace(self):
+        product = scrape.Product(None, ' https://example.test/source ')
+
+        self.assertEqual('https://example.test/source', product.url)
+
     def test_build_request_uses_plain_url_without_spoofing_headers(self):
         product = scrape.Product(None, 'https://example.test/source')
 

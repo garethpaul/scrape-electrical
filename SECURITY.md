@@ -38,6 +38,8 @@ For web services, APIs, sockets, or scraping workflows, prioritize reports invol
 Product parsing rejects non-web link schemes. It normalizes relative product links
 against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
+Source page URLs must also use HTTP(S) and include a host before the scraper
+opens them with `urllib2`.
 
 ## Dependency and Supply Chain Security
 

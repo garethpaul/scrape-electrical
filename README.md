@@ -77,6 +77,8 @@ python2 scrape.py --url https://example.test/products \
   tracking headers.
 - Live fetches use a bounded default timeout so stalled requests do not hang
   forever.
+- Source page URLs must use `http` or `https` and include a host before the
+  scraper opens them.
 - Product cards without usable links are skipped rather than aborting the
   scrape.
 - Parsed product links are resolved against the source URL and must use
@@ -91,6 +93,8 @@ python2 scrape.py --url https://example.test/products \
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
 - Parser tests also cover non-web link rejection and relative product-link
+  normalization.
+- Parser tests also cover source page URL scheme validation and whitespace
   normalization.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
@@ -133,6 +137,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   when cursor close fails.
 - See `docs/plans/2026-06-09-cli-dry-run.md` for the command-line dry-run and
   live database credential guard.
+- See `docs/plans/2026-06-09-source-url-scheme-guard.md` for source page URL
+  scheme validation.
 
 ## Contributing
 
