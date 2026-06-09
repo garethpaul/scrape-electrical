@@ -16,12 +16,30 @@ class FakeCursor(object):
         self.calls.append((sql, params))
 
 
+class ClosingCursor(FakeCursor):
+    def __init__(self, close_order):
+        super(ClosingCursor, self).__init__()
+        self.close_order = close_order
+
+    def close(self):
+        self.close_order.append('cursor')
+
+
 class FakeConnection(object):
     def __init__(self):
         self.commits = 0
 
     def commit(self):
         self.commits += 1
+
+
+class ClosingConnection(FakeConnection):
+    def __init__(self, close_order):
+        super(ClosingConnection, self).__init__()
+        self.close_order = close_order
+
+    def close(self):
+        self.close_order.append('connection')
 
 
 class FakeDatabaseConnection(FakeConnection):
@@ -182,6 +200,16 @@ class DatabaseTests(unittest.TestCase):
         database = database_with('products; DROP TABLE products')
 
         self.assertRaises(ValueError, database.insert, 'name', 'link', '$1.00')
+
+    def test_close_closes_cursor_before_connection(self):
+        close_order = []
+        database = database_with('products')
+        database.cur = ClosingCursor(close_order)
+        database.conn = ClosingConnection(close_order)
+
+        database.close()
+
+        self.assertEqual(['cursor', 'connection'], close_order)
 
 
 class ProductParserTests(unittest.TestCase):

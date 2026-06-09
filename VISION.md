@@ -20,6 +20,7 @@ Priority:
 - Bound live network reads so stalled targets do not hang indefinitely
 - Skip incomplete product cards instead of aborting the scrape
 - Pass database connection fields as structured driver parameters
+- Keep database cursor cleanup ordered before connection teardown
 - Keep completed maintenance plans under `docs/plans`
 - Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
 

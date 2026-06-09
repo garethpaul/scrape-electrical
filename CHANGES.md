@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Closed scraper database cursors before connections and added Python 2
+  regression coverage for DB-API cleanup order.
 - Switched `Database` initialization to pass PostgreSQL connection fields to
   `psycopg2.connect` as keyword arguments instead of an interpolated connection
   string.

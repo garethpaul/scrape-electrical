@@ -72,6 +72,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   product links.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
+- Database tests also cover cursor-first cleanup before connection close.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -98,6 +99,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   handling.
 - See `docs/plans/2026-06-09-structured-db-connect.md` for structured
   database connection parameters.
+- See `docs/plans/2026-06-09-database-close-order.md` for cursor-first
+  database cleanup coverage.
 
 ## Contributing
 

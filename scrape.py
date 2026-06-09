@@ -23,8 +23,8 @@ class Database(object):
 
     def close(self):
         # Over psycopg2 must be closed
-        self.conn.close()
         self.cur.close()
+        self.conn.close()
 
     def insert(self, name, link, price):
         table_name = self.safe_table_name()
