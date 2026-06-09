@@ -102,6 +102,8 @@ python2 scrape.py --url https://example.test/products \
   when cursor cleanup fails.
 - CLI tests cover dry-run parsing, dry-run output, complete credential
   requirements for live writes, and explicit live database construction.
+- `make check` runs with Python bytecode disabled and fails if `.pyc` or `.pyo`
+  files are present in the checkout.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -139,6 +141,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   live database credential guard.
 - See `docs/plans/2026-06-09-source-url-scheme-guard.md` for source page URL
   scheme validation.
+- See `docs/plans/2026-06-09-bytecode-free-verification.md` for bytecode-free
+  verification coverage.
 
 ## Contributing
 

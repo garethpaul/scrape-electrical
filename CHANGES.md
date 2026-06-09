@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Kept Python verification bytecode-free and added checker coverage to reject
+  generated `.pyc` and `.pyo` files.
 - Rejected blank, hostless, and non-HTTP(S) source page URLs before `urllib2`
   reads, with Python 2 regression coverage.
 - Added a Python 2 command-line entry point with dry-run output and complete

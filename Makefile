@@ -1,11 +1,14 @@
 .PHONY: build check lint test verify
 
+PYTHON ?= python2
+export PYTHONDONTWRITEBYTECODE = 1
+
 lint:
-	python2 -m py_compile scrape.py
-	python2 scripts/check-docs-plans.py
+	$(PYTHON) -B -c 'compile(open("scrape.py").read(), "scrape.py", "exec")'
+	$(PYTHON) -B scripts/check-docs-plans.py
 
 test:
-	python2 -m unittest discover -s tests
+	$(PYTHON) -B -m unittest discover -s tests
 
 build: lint
 

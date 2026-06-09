@@ -11,6 +11,7 @@ DOCS_PLANS = os.path.join(ROOT, 'docs', 'plans')
 CANONICAL_PLAN = os.path.join(DOCS_PLANS, '2026-06-08-scrape-electrical-baseline.md')
 LINK_SCHEME_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-product-link-scheme-guard.md')
 CLI_DRY_RUN_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-cli-dry-run.md')
+BYTECODE_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-bytecode-free-verification.md')
 
 
 def rel(path):
@@ -30,6 +31,8 @@ if not os.path.isfile(LINK_SCHEME_PLAN):
     failures.append('%s is missing' % rel(LINK_SCHEME_PLAN))
 if not os.path.isfile(CLI_DRY_RUN_PLAN):
     failures.append('%s is missing' % rel(CLI_DRY_RUN_PLAN))
+if not os.path.isfile(BYTECODE_PLAN):
+    failures.append('%s is missing' % rel(BYTECODE_PLAN))
 
 plans = sorted(glob.glob(os.path.join(DOCS_PLANS, '*.md')))
 if not plans:
@@ -39,6 +42,17 @@ for plan_path in plans:
     plan = read(plan_path)
     if 'Status: Completed' not in plan or 'make check' not in plan:
         failures.append('%s must record completed status and make check verification' % rel(plan_path))
+
+bytecode_files = []
+for dirpath, dirnames, filenames in os.walk(ROOT):
+    if '.git' in dirnames:
+        dirnames.remove('.git')
+    for filename in filenames:
+        if filename.endswith(('.pyc', '.pyo')):
+            bytecode_files.append(rel(os.path.join(dirpath, filename)))
+
+if bytecode_files:
+    failures.append('Python bytecode must not be present: %s' % ', '.join(sorted(bytecode_files)))
 
 scrape_source = read(os.path.join(ROOT, 'scrape.py'))
 if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
