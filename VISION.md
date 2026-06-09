@@ -19,6 +19,7 @@ Priority:
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
 - Skip incomplete product cards instead of aborting the scrape
+- Pass database connection fields as structured driver parameters
 - Keep completed maintenance plans under `docs/plans`
 - Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
 
@@ -49,6 +50,7 @@ writes should be parameterized before production use.
 ## What We Will Not Merge (For Now)
 
 - SQL string concatenation for user-provided values
+- Interpolated PostgreSQL connection strings for operator-provided credentials
 - Credential files
 - Anti-blocking or evasion behavior
 - Large scraped datasets

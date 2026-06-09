@@ -1,4 +1,6 @@
 import unittest
+import sys
+import types
 
 import scrape
 
@@ -20,6 +22,15 @@ class FakeConnection(object):
 
     def commit(self):
         self.commits += 1
+
+
+class FakeDatabaseConnection(FakeConnection):
+    def __init__(self):
+        super(FakeDatabaseConnection, self).__init__()
+        self.cursor_instance = FakeCursor()
+
+    def cursor(self):
+        return self.cursor_instance
 
 
 class FakeProductDatabase(object):
@@ -117,6 +128,42 @@ def database_with(table_name):
 
 
 class DatabaseTests(unittest.TestCase):
+    def test_database_connect_uses_keyword_parameters(self):
+        calls = []
+        fake_psycopg2 = types.ModuleType('psycopg2')
+
+        def connect(**kwargs):
+            calls.append(kwargs)
+            return FakeDatabaseConnection()
+
+        fake_psycopg2.connect = connect
+        original_psycopg2 = sys.modules.get('psycopg2', MISSING_HREF)
+        sys.modules['psycopg2'] = fake_psycopg2
+        try:
+            database = scrape.Database(
+                'products db',
+                'scraper user',
+                'pass word',
+                'db.example.test',
+                'products'
+            )
+        finally:
+            if original_psycopg2 is MISSING_HREF:
+                del sys.modules['psycopg2']
+            else:
+                sys.modules['psycopg2'] = original_psycopg2
+
+        self.assertEqual(
+            [{
+                'user': 'scraper user',
+                'password': 'pass word',
+                'host': 'db.example.test',
+                'dbname': 'products db',
+            }],
+            calls,
+        )
+        self.assertIsInstance(database.cur, FakeCursor)
+
     def test_insert_uses_parameterized_values(self):
         database = database_with('products')
 

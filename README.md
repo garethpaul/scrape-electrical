@@ -61,6 +61,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   forever.
 - Product cards without usable links are skipped rather than aborting the
   scrape.
+- Database connection fields are passed to `psycopg2` as structured keyword
+  arguments instead of an interpolated connection string.
 
 ## Testing and Verification
 
@@ -68,6 +70,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   unit tests.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
+- Database tests cover parameterized inserts and structured `psycopg2`
+  connection parameters without requiring a live PostgreSQL server.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -92,6 +96,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   guard.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link
   handling.
+- See `docs/plans/2026-06-09-structured-db-connect.md` for structured
+  database connection parameters.
 
 ## Contributing
 

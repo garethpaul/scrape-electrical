@@ -13,7 +13,12 @@ class Database(object):
         self.dbhost = dbhost
         self.tbname = tbname
         import psycopg2
-        self.conn = psycopg2.connect("user=%s password=%s host=%s dbname=%s" % (self.dbuser, self.dbpassword, self.dbhost, self.dbname))
+        self.conn = psycopg2.connect(
+            user=self.dbuser,
+            password=self.dbpassword,
+            host=self.dbhost,
+            dbname=self.dbname
+        )
         self.cur = self.conn.cursor()
 
     def close(self):

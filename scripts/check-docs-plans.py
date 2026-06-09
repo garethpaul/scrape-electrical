@@ -34,6 +34,12 @@ for plan_path in plans:
     if 'Status: Completed' not in plan or 'make check' not in plan:
         failures.append('%s must record completed status and make check verification' % rel(plan_path))
 
+scrape_source = read(os.path.join(ROOT, 'scrape.py'))
+if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
+    failures.append('scrape.py must not build a psycopg2 connection string by interpolation')
+if 'psycopg2.connect(\n            user=self.dbuser,' not in scrape_source:
+    failures.append('scrape.py must pass database connection fields as psycopg2 keyword arguments')
+
 if failures:
     print('Documentation plan checks failed:\n- %s' % '\n- '.join(failures), file=sys.stderr)
     sys.exit(1)

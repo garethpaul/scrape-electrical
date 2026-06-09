@@ -1,5 +1,13 @@
 # Changes
 
+## 2026-06-09
+
+- Switched `Database` initialization to pass PostgreSQL connection fields to
+  `psycopg2.connect` as keyword arguments instead of an interpolated connection
+  string.
+- Added Python 2 unit coverage and a static check for structured database
+  connection parameters.
+
 ## 2026-06-08
 
 - Skipped product cards with missing or blank links and added parser coverage
