@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added product-link normalization so relative URLs resolve against the source
+  page and non-HTTP(S) links are skipped before database insertion.
 - Ensured database connection cleanup is attempted even when cursor cleanup
   fails, with Python 2 regression coverage.
 - Closed scraper database cursors before connections and added Python 2

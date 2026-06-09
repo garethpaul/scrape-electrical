@@ -290,6 +290,37 @@ class ProductParserTests(unittest.TestCase):
 
         self.assertEqual([], database.inserts)
 
+    def test_find_products_skips_non_web_links(self):
+        database = FakeProductDatabase()
+        product = scrape.Product(database, 'https://example.test/source')
+        page = FakePage([
+            FakeProductNode('Script link', 'javascript:alert(1)', '$1.00'),
+            FakeProductNode('Local file', 'file:///etc/passwd', '$2.00'),
+            FakeProductNode('Mail link', 'mailto:sales@example.test', '$3.00'),
+            FakeProductNode('Valid item', 'https://example.test/item', '$4.00'),
+        ])
+
+        product.find_products(page)
+
+        self.assertEqual(
+            [('Valid item', 'https://example.test/item', '$4.00')],
+            database.inserts,
+        )
+
+    def test_find_products_normalizes_relative_links(self):
+        database = FakeProductDatabase()
+        product = scrape.Product(database, 'https://example.test/source/list')
+        page = FakePage([
+            FakeProductNode('Relative item', '/item/123', '$4.00'),
+        ])
+
+        product.find_products(page)
+
+        self.assertEqual(
+            [('Relative item', 'https://example.test/item/123', '$4.00')],
+            database.inserts,
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

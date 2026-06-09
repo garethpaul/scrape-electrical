@@ -1,5 +1,6 @@
 import re
 import urllib2
+from urlparse import urljoin, urlparse
 
 class Database(object):
     """
@@ -93,7 +94,8 @@ class Product(object):
             href = link['href']
         except KeyError:
             return None
-        if not href or not href.strip():
+        link_url = self.normalized_link(href)
+        if link_url is None:
             return None
 
         price = product.find('span', {'class': 'price'})
@@ -105,7 +107,18 @@ class Product(object):
         if bold_price is not None:
             price_text = bold_price.text
 
-        return (link.contents[0], href.strip(), price_text)
+        return (link.contents[0], link_url, price_text)
+
+    def normalized_link(self, href):
+        if not href or not href.strip():
+            return None
+
+        link_url = urljoin(self.url, href.strip())
+        parsed_url = urlparse(link_url)
+        if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
+            return None
+
+        return link_url
 
 def main(database, url):
     # put database with Product and include the url

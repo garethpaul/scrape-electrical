@@ -61,6 +61,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   forever.
 - Product cards without usable links are skipped rather than aborting the
   scrape.
+- Parsed product links are resolved against the source URL and must use
+  `http` or `https` before they are inserted.
 - Database connection fields are passed to `psycopg2` as structured keyword
   arguments instead of an interpolated connection string.
 
@@ -70,6 +72,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   unit tests.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
+- Parser tests also cover non-web link rejection and relative product-link
+  normalization.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
 - Database tests also cover cursor-first cleanup and connection close attempts
@@ -98,6 +102,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   guard.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link
   handling.
+- See `docs/plans/2026-06-09-product-link-scheme-guard.md` for product-link
+  scheme validation and relative-link normalization.
 - See `docs/plans/2026-06-09-structured-db-connect.md` for structured
   database connection parameters.
 - See `docs/plans/2026-06-09-database-close-order.md` for cursor-first

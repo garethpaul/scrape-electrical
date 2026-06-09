@@ -19,6 +19,7 @@ Priority:
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
 - Skip incomplete product cards instead of aborting the scrape
+- Resolve product links against the source URL and reject non-web schemes
 - Pass database connection fields as structured driver parameters
 - Keep database cursor cleanup ordered before connection teardown
 - Keep connection cleanup attempted when cursor cleanup fails
