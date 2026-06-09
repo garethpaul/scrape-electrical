@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added a Python 2 command-line entry point with dry-run output and complete
+  database credential requirements for live writes.
 - Added product-link normalization so relative URLs resolve against the source
   page and non-HTTP(S) links are skipped before database insertion.
 - Ensured database connection cleanup is attempted even when cursor cleanup

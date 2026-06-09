@@ -50,11 +50,29 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 ## Running or Using the Project
 
-- Import `scrape.py` from a small driver that creates a `Database` instance and
-  passes it to `main(database, url)`.
+- Preview parsed rows without PostgreSQL writes:
+
+```bash
+python2 scrape.py --url https://example.test/products --dry-run
+```
+
+- For live writes, pass all database fields explicitly:
+
+```bash
+python2 scrape.py --url https://example.test/products \
+  --db-name products_db \
+  --db-user scraper \
+  --db-password "$SCRAPE_DB_PASSWORD" \
+  --db-host db.example.test \
+  --table-name products
+```
+
+- Existing callers can still import `scrape.py`, create a `Database` instance,
+  and pass it to `main(database, url)`.
 - Confirm target-site permission and rate limits before scraping.
 - Use test data first; the script writes to PostgreSQL when `Product.find()`
   inserts parsed products.
+- Use `--dry-run` before live writes to confirm parser output.
 - The default request path does not set fake browser, referer, or randomized
   tracking headers.
 - Live fetches use a bounded default timeout so stalled requests do not hang
@@ -78,13 +96,16 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   connection parameters without requiring a live PostgreSQL server.
 - Database tests also cover cursor-first cleanup and connection close attempts
   when cursor cleanup fails.
+- CLI tests cover dry-run parsing, dry-run output, complete credential
+  requirements for live writes, and explicit live database construction.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
 ## Configuration and Secrets
 
-- No required secret or credential file was identified in the repository scan. If you add integrations later, keep secrets out of git.
+- Live PostgreSQL runs require operator-provided database connection fields.
+  Keep credentials in the shell or a local secret manager; do not commit them.
 
 ## Security and Privacy Notes
 
@@ -110,6 +131,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   database cleanup coverage.
 - See `docs/plans/2026-06-09-database-close-finally.md` for connection cleanup
   when cursor close fails.
+- See `docs/plans/2026-06-09-cli-dry-run.md` for the command-line dry-run and
+  live database credential guard.
 
 ## Contributing
 

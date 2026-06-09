@@ -1,6 +1,11 @@
+from __future__ import print_function
+
+import argparse
 import re
+import sys
 import urllib2
 from urlparse import urljoin, urlparse
+
 
 class Database(object):
     """
@@ -44,6 +49,18 @@ class Database(object):
 
     def normalized_price(self, price):
         return price.replace('$', '').strip()
+
+
+class DryRunDatabase(object):
+    def __init__(self, output=None):
+        self.output = output if output is not None else sys.stdout
+
+    def insert(self, name, link, price):
+        self.output.write('%s\t%s\t%s\n' % (name, link, price))
+
+    def close(self):
+        pass
+
 
 class Product(object):
     """
@@ -120,8 +137,71 @@ class Product(object):
 
         return link_url
 
-def main(database, url):
+def build_arg_parser():
+    parser = argparse.ArgumentParser(
+        description='Scrape product rows from a permitted page.'
+    )
+    parser.add_argument('--url', required=True, help='source page URL to scrape')
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='print parsed rows instead of writing to PostgreSQL'
+    )
+    parser.add_argument('--timeout', type=float, default=30, help='network timeout in seconds')
+    parser.add_argument('--db-name', dest='db_name', help='PostgreSQL database name')
+    parser.add_argument('--db-user', dest='db_user', help='PostgreSQL user')
+    parser.add_argument('--db-password', dest='db_password', help='PostgreSQL password')
+    parser.add_argument('--db-host', dest='db_host', help='PostgreSQL host')
+    parser.add_argument('--table-name', dest='table_name', default='products', help='target table name')
+    return parser
+
+
+def parse_args(argv=None):
+    return build_arg_parser().parse_args(argv)
+
+
+def database_from_options(options):
+    if options.dry_run:
+        return DryRunDatabase()
+
+    required_options = [
+        ('--db-name', options.db_name),
+        ('--db-user', options.db_user),
+        ('--db-password', options.db_password),
+        ('--db-host', options.db_host),
+    ]
+    missing_options = [name for name, value in required_options if not value]
+    if missing_options:
+        raise ValueError(
+            'missing database options for live writes: %s' % ', '.join(missing_options)
+        )
+
+    return Database(
+        options.db_name,
+        options.db_user,
+        options.db_password,
+        options.db_host,
+        options.table_name
+    )
+
+
+def run_cli(argv=None):
+    parser = build_arg_parser()
+    options = parser.parse_args(argv)
+    try:
+        database = database_from_options(options)
+    except ValueError as error:
+        parser.error(str(error))
+
+    main(database, options.url, timeout=options.timeout)
+
+
+def main(database, url, timeout=30):
     # put database with Product and include the url
-    p = Product(database, url)
+    p = Product(database, url, timeout=timeout)
     # find products and place them in a database
     p.find()
+
+
+if __name__ == '__main__':
+    run_cli()

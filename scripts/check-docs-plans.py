@@ -10,6 +10,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DOCS_PLANS = os.path.join(ROOT, 'docs', 'plans')
 CANONICAL_PLAN = os.path.join(DOCS_PLANS, '2026-06-08-scrape-electrical-baseline.md')
 LINK_SCHEME_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-product-link-scheme-guard.md')
+CLI_DRY_RUN_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-cli-dry-run.md')
 
 
 def rel(path):
@@ -27,6 +28,8 @@ if not os.path.isfile(CANONICAL_PLAN):
     failures.append('%s is missing' % rel(CANONICAL_PLAN))
 if not os.path.isfile(LINK_SCHEME_PLAN):
     failures.append('%s is missing' % rel(LINK_SCHEME_PLAN))
+if not os.path.isfile(CLI_DRY_RUN_PLAN):
+    failures.append('%s is missing' % rel(CLI_DRY_RUN_PLAN))
 
 plans = sorted(glob.glob(os.path.join(DOCS_PLANS, '*.md')))
 if not plans:
@@ -50,10 +53,28 @@ if "parsed_url.scheme not in ('http', 'https')" not in scrape_source:
     failures.append('scrape.py must reject parsed product links that are not HTTP(S)')
 if 'urljoin(self.url, href.strip())' not in scrape_source:
     failures.append('scrape.py must resolve relative product links against the source URL')
+if 'import argparse' not in scrape_source:
+    failures.append('scrape.py must expose a Python 2 argparse CLI')
+if 'class DryRunDatabase(object):' not in scrape_source:
+    failures.append('scrape.py must provide a dry-run database sink')
+if "'--dry-run'" not in scrape_source:
+    failures.append('scrape.py CLI must expose --dry-run')
+if 'def database_from_options(options):' not in scrape_source:
+    failures.append('scrape.py must centralize CLI database creation')
+if 'if options.dry_run:' not in scrape_source:
+    failures.append('scrape.py must bypass PostgreSQL creation during dry-run')
+if "'missing database options for live writes:" not in scrape_source:
+    failures.append('scrape.py must reject live CLI writes without complete DB options')
+if "if __name__ == '__main__':\n    run_cli()" not in scrape_source:
+    failures.append('scrape.py must run the CLI entry point when executed directly')
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
     failures.append('%s must record completed product link scheme work' % rel(LINK_SCHEME_PLAN))
+
+cli_plan = read(CLI_DRY_RUN_PLAN) if os.path.isfile(CLI_DRY_RUN_PLAN) else ''
+if 'Status: Completed' not in cli_plan or '--dry-run' not in cli_plan:
+    failures.append('%s must record completed CLI dry-run work' % rel(CLI_DRY_RUN_PLAN))
 
 security = read(os.path.join(ROOT, 'SECURITY.md'))
 if 'non-web link schemes' not in security or 'relative product links' not in security:

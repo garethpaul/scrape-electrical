@@ -1,4 +1,5 @@
 import unittest
+import StringIO
 import sys
 import types
 
@@ -226,6 +227,84 @@ class DatabaseTests(unittest.TestCase):
         self.assertRaises(RuntimeError, database.close)
 
         self.assertEqual(['cursor', 'connection'], close_order)
+
+
+class CLITests(unittest.TestCase):
+    def test_parse_args_supports_dry_run_without_database_credentials(self):
+        options = scrape.parse_args([
+            '--url', 'https://example.test/source',
+            '--dry-run',
+            '--timeout', '7',
+        ])
+
+        self.assertEqual('https://example.test/source', options.url)
+        self.assertTrue(options.dry_run)
+        self.assertEqual(7.0, options.timeout)
+
+    def test_dry_run_database_prints_parsed_rows_without_closing_resources(self):
+        output = StringIO.StringIO()
+        database = scrape.DryRunDatabase(output=output)
+
+        database.insert('Wire stripper', 'https://example.test/item', '$8.50')
+        database.close()
+
+        self.assertEqual(
+            'Wire stripper\thttps://example.test/item\t$8.50\n',
+            output.getvalue(),
+        )
+
+    def test_database_from_options_uses_dry_run_database_without_credentials(self):
+        options = scrape.parse_args([
+            '--url', 'https://example.test/source',
+            '--dry-run',
+        ])
+
+        database = scrape.database_from_options(options)
+
+        self.assertIsInstance(database, scrape.DryRunDatabase)
+
+    def test_database_from_options_requires_live_database_credentials(self):
+        options = scrape.parse_args(['--url', 'https://example.test/source'])
+
+        try:
+            scrape.database_from_options(options)
+            self.fail('database_from_options should reject missing live database credentials')
+        except ValueError as error:
+            message = str(error)
+
+        self.assertIn('--db-name', message)
+        self.assertIn('--db-user', message)
+        self.assertIn('--db-password', message)
+        self.assertIn('--db-host', message)
+
+    def test_database_from_options_builds_database_for_live_run(self):
+        calls = []
+
+        def fake_database(db_name, db_user, db_password, db_host, table_name):
+            calls.append((db_name, db_user, db_password, db_host, table_name))
+            return 'database'
+
+        original_database = scrape.Database
+        scrape.Database = fake_database
+        try:
+            options = scrape.parse_args([
+                '--url', 'https://example.test/source',
+                '--db-name', 'products_db',
+                '--db-user', 'scraper',
+                '--db-password', 'secret',
+                '--db-host', 'db.example.test',
+                '--table-name', 'electrical_products',
+            ])
+
+            database = scrape.database_from_options(options)
+        finally:
+            scrape.Database = original_database
+
+        self.assertEqual('database', database)
+        self.assertEqual(
+            [('products_db', 'scraper', 'secret', 'db.example.test', 'electrical_products')],
+            calls,
+        )
 
 
 class ProductParserTests(unittest.TestCase):

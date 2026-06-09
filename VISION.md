@@ -21,6 +21,7 @@ Priority:
 - Skip incomplete product cards instead of aborting the scrape
 - Resolve product links against the source URL and reject non-web schemes
 - Pass database connection fields as structured driver parameters
+- Require a dry-run or complete database credentials for command-line runs
 - Keep database cursor cleanup ordered before connection teardown
 - Keep connection cleanup attempted when cursor cleanup fails
 - Keep completed maintenance plans under `docs/plans`
@@ -28,9 +29,8 @@ Priority:
 
 Next priorities:
 
-- Add argument parsing and a dry-run mode
-- Replace string-built SQL with parameterized queries
 - Document target-site permission, rate limits, and data retention
+- Add rate limiting or backoff before broad live scraping
 - Expand mocked HTML and database tests before parser changes
 
 Contribution rules:
@@ -55,6 +55,7 @@ writes should be parameterized before production use.
 - SQL string concatenation for user-provided values
 - Interpolated PostgreSQL connection strings for operator-provided credentials
 - Credential files
+- Command-line live writes without explicit database credentials
 - Anti-blocking or evasion behavior
 - Large scraped datasets
 
