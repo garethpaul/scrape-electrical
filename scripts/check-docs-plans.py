@@ -12,6 +12,7 @@ CANONICAL_PLAN = os.path.join(DOCS_PLANS, '2026-06-08-scrape-electrical-baseline
 LINK_SCHEME_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-product-link-scheme-guard.md')
 CLI_DRY_RUN_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-cli-dry-run.md')
 BYTECODE_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-bytecode-free-verification.md')
+CI_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-ci-baseline.md')
 
 
 def rel(path):
@@ -33,6 +34,8 @@ if not os.path.isfile(CLI_DRY_RUN_PLAN):
     failures.append('%s is missing' % rel(CLI_DRY_RUN_PLAN))
 if not os.path.isfile(BYTECODE_PLAN):
     failures.append('%s is missing' % rel(BYTECODE_PLAN))
+if not os.path.isfile(CI_PLAN):
+    failures.append('%s is missing' % rel(CI_PLAN))
 
 plans = sorted(glob.glob(os.path.join(DOCS_PLANS, '*.md')))
 if not plans:
@@ -54,7 +57,35 @@ for dirpath, dirnames, filenames in os.walk(ROOT):
 if bytecode_files:
     failures.append('Python bytecode must not be present: %s' % ', '.join(sorted(bytecode_files)))
 
+workflow_path = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
+workflow = read(workflow_path) if os.path.isfile(workflow_path) else ''
+makefile = read(os.path.join(ROOT, 'Makefile'))
+readme = read(os.path.join(ROOT, 'README.md'))
+vision = read(os.path.join(ROOT, 'VISION.md'))
+changes = read(os.path.join(ROOT, 'CHANGES.md'))
 scrape_source = read(os.path.join(ROOT, 'scrape.py'))
+required_workflow_phrases = (
+    'actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10',
+    'actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405',
+    'python-version: "3.12"',
+    'permissions:',
+    'contents: read',
+    'timeout-minutes: 5',
+    'workflow_dispatch:',
+    'run: make check',
+)
+for phrase in required_workflow_phrases:
+    if phrase not in workflow:
+        failures.append('GitHub Actions workflow must contain %s' % phrase)
+required_makefile_phrases = (
+    'CHECK_PYTHON ?= python3',
+    '$(CHECK_PYTHON) -B scripts/check-docs-plans.py',
+    'Skipping legacy Python 2 scraper syntax check',
+    'Skipping legacy Python 2 scraper tests',
+)
+for phrase in required_makefile_phrases:
+    if phrase not in makefile:
+        failures.append('Makefile must contain %s' % phrase)
 if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
     failures.append('scrape.py must not build a psycopg2 connection string by interpolation')
 if 'psycopg2.connect(\n            user=self.dbuser,' not in scrape_source:
@@ -101,6 +132,12 @@ if 'non-web link schemes' not in security or 'relative product links' not in sec
     failures.append('SECURITY.md must document product link scheme and relative URL boundaries')
 if 'Source page URLs must also use HTTP(S)' not in security:
     failures.append('SECURITY.md must document source URL scheme validation')
+if 'GitHub Actions' not in readme or 'GitHub Actions' not in vision or 'GitHub Actions' not in security or 'GitHub Actions' not in changes:
+    failures.append('docs must mention the GitHub Actions CI baseline')
+
+ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
+if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:
+    failures.append('%s must record completed CI baseline verification' % rel(CI_PLAN))
 
 if failures:
     print('Documentation plan checks failed:\n- %s' % '\n- '.join(failures), file=sys.stderr)

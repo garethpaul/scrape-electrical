@@ -1,5 +1,12 @@
 # Changes
 
+## 2026-06-10
+
+- Added a least-privilege GitHub Actions workflow that runs `make check` with
+  Python 3.12 and pinned Node 24-compatible actions.
+- Made the Python 3 documentation-plan baseline unconditional while preserving
+  Python 2 compile and unit tests whenever the legacy interpreter is installed.
+
 ## 2026-06-09
 
 - Kept Python verification bytecode-free and added checker coverage to reject
