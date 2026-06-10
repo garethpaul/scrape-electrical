@@ -2,11 +2,13 @@
 
 ## 2026-06-10
 
+- Closed scraper HTTP responses after successful and failed body reads, with
+  Python 2 regression coverage.
 - Added a least-privilege GitHub Actions workflow that runs `make check` with
   Python 3.12 and pinned Node 24-compatible actions.
 - Made the Python 3 documentation-plan baseline unconditional while preserving
   Python 2 compile and unit tests whenever the legacy interpreter is installed.
-- Replaced successful Python 2 skips with all 19 offline tests in a
+- Replaced successful Python 2 skips with all 20 offline tests in a
   digest-pinned Python 2.7.18 container.
 - Made the canonical gate independent of the caller's current directory.
 

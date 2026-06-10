@@ -100,6 +100,8 @@ python2 scrape.py --url https://example.test/products \
   normalization.
 - Parser tests also cover source page URL scheme validation and whitespace
   normalization.
+- Network tests require HTTP responses to close after successful and failed
+  body reads.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
 - Database tests also cover cursor-first cleanup and connection close attempts
@@ -151,6 +153,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   check` baseline.
 - See `docs/plans/2026-06-10-hosted-legacy-validation.md` for the enforced
   Python 2.7 offline test boundary.
+- See `docs/plans/2026-06-10-http-response-cleanup.md` for scraper response
+  cleanup on successful and failed reads.
 
 ## Contributing
 

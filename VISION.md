@@ -18,6 +18,7 @@ Priority:
 - Keep database credentials passed by the operator, not committed
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
+- Close source-page responses on successful and failed body reads
 - Require source page URLs to use HTTP(S) before network reads
 - Skip incomplete product cards instead of aborting the scrape
 - Resolve product links against the source URL and reject non-web schemes

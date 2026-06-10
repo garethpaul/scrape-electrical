@@ -40,6 +40,8 @@ against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
+HTTP responses must close after body reads, including parser or transport
+failure paths, so repeated scraping does not leak network resources.
 GitHub Actions runs the complete offline gate in a digest-pinned Python 2.7.18
 container. It installs no live scraping or database dependencies and does not
 receive database credentials.
