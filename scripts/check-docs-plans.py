@@ -13,6 +13,7 @@ LINK_SCHEME_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-product-link-scheme-guar
 CLI_DRY_RUN_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-cli-dry-run.md')
 BYTECODE_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-bytecode-free-verification.md')
 CI_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-ci-baseline.md')
+HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validation.md')
 
 
 def rel(path):
@@ -36,6 +37,8 @@ if not os.path.isfile(BYTECODE_PLAN):
     failures.append('%s is missing' % rel(BYTECODE_PLAN))
 if not os.path.isfile(CI_PLAN):
     failures.append('%s is missing' % rel(CI_PLAN))
+if not os.path.isfile(HOSTED_LEGACY_PLAN):
+    failures.append('%s is missing' % rel(HOSTED_LEGACY_PLAN))
 
 plans = sorted(glob.glob(os.path.join(DOCS_PLANS, '*.md')))
 if not plans:
@@ -65,27 +68,38 @@ vision = read(os.path.join(ROOT, 'VISION.md'))
 changes = read(os.path.join(ROOT, 'CHANGES.md'))
 scrape_source = read(os.path.join(ROOT, 'scrape.py'))
 required_workflow_phrases = (
+    'runs-on: ubuntu-24.04',
     'actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10',
-    'actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405',
-    'python-version: "3.12"',
+    'python:2.7.18@sha256:c934af72b8bd03b9804d5bde2569c320926e70392d708d113a2e71bcf98c8a20',
     'permissions:',
     'contents: read',
-    'timeout-minutes: 5',
+    'timeout-minutes: 10',
     'workflow_dispatch:',
     'run: make check',
 )
 for phrase in required_workflow_phrases:
     if phrase not in workflow:
         failures.append('GitHub Actions workflow must contain %s' % phrase)
+for line in workflow.splitlines():
+    stripped = line.strip()
+    if stripped.startswith('uses:'):
+        revision = stripped.split('@', 1)[-1].split()[0]
+        if len(revision) != 40 or any(character not in '0123456789abcdef' for character in revision):
+            failures.append('GitHub Actions actions must be pinned to full commit SHAs')
+            break
+if 'continue-on-error' in workflow:
+    failures.append('GitHub Actions must not allow legacy scraper verification failures')
 required_makefile_phrases = (
-    'CHECK_PYTHON ?= python3',
-    '$(CHECK_PYTHON) -B scripts/check-docs-plans.py',
-    'Skipping legacy Python 2 scraper syntax check',
-    'Skipping legacy Python 2 scraper tests',
+    'ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))',
+    'PYTHON ?= python2',
+    '$(PYTHON) -B "$(ROOT)/scripts/check-docs-plans.py"',
+    '$(PYTHON) -B -m unittest discover -s tests',
 )
 for phrase in required_makefile_phrases:
     if phrase not in makefile:
         failures.append('Makefile must contain %s' % phrase)
+if 'command -v "$(PYTHON)"' in makefile or 'Skipping legacy Python 2' in makefile:
+    failures.append('Makefile must require Python 2 scraper verification instead of skipping it')
 if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
     failures.append('scrape.py must not build a psycopg2 connection string by interpolation')
 if 'psycopg2.connect(\n            user=self.dbuser,' not in scrape_source:

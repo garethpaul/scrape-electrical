@@ -27,8 +27,7 @@ Priority:
 - Keep connection cleanup attempted when cursor cleanup fails
 - Keep completed maintenance plans under `docs/plans`
 - Keep verification runs from leaving Python bytecode in the checkout
-- Keep GitHub Actions running the Python 3 documentation-plan baseline while
-  preserving Python 2 compile/tests on hosts that still have `python2`
+- Keep GitHub Actions running the complete offline Python 2 scraper suite
 - Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
 
 Next priorities:

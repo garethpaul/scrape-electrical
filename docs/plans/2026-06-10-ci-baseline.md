@@ -27,3 +27,9 @@ and database behavior as tested.
 - `make check`
 - `make check PYTHON=python2-unavailable`
 - `git diff --check`
+
+## Superseded Limitation
+
+The successful Python 2 skip behavior described above was replaced on
+2026-06-10 by the full offline runtime gate in
+`docs/plans/2026-06-10-hosted-legacy-validation.md`.

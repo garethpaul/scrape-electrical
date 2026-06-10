@@ -10,18 +10,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  legacy-python:
+    name: Python 2.7 offline scraper verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: python:2.7.18@sha256:c934af72b8bd03b9804d5bde2569c320926e70392d708d113a2e71bcf98c8a20
     steps:
       - name: Check out repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
+      - name: Show Python runtime
+        run: python2 --version
 
-      - name: Run guarded baseline
+      - name: Run full offline scraper verification
         run: make check
