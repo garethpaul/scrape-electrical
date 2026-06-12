@@ -18,6 +18,7 @@ Priority:
 - Keep database credentials passed by the operator, not committed
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
+- Close source-page responses on successful and failed body reads
 - Require source page URLs to use HTTP(S) before network reads
 - Skip incomplete product cards instead of aborting the scrape
 - Resolve product links against the source URL and reject non-web schemes
@@ -27,8 +28,9 @@ Priority:
 - Keep connection cleanup attempted when cursor cleanup fails
 - Keep completed maintenance plans under `docs/plans`
 - Keep verification runs from leaving Python bytecode in the checkout
-- Keep GitHub Actions running the Python 3 documentation-plan baseline while
-  preserving Python 2 compile/tests on hosts that still have `python2`
+- Keep GitHub Actions running the complete offline Python 2 scraper suite with
+  credential-free checkout and no live dependency installation
+- Keep hosted workflow policy protected by dependency-free hostile mutations
 - Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
 
 Next priorities:

@@ -67,17 +67,27 @@ class FakeProductDatabase(object):
 
 
 class FakeResponse(object):
+    def __init__(self, error=None):
+        self.error = error
+        self.closed = False
+
     def read(self):
+        if self.error is not None:
+            raise self.error
         return 'response body'
+
+    def close(self):
+        self.closed = True
 
 
 class FakeOpener(object):
-    def __init__(self):
+    def __init__(self, response=None):
         self.calls = []
+        self.response = response if response is not None else FakeResponse()
 
     def open(self, request, timeout=None):
         self.calls.append((request, timeout))
-        return FakeResponse()
+        return self.response
 
 
 class FakeAnchor(object):
@@ -323,6 +333,21 @@ class ProductParserTests(unittest.TestCase):
         request, timeout = opener.calls[0]
         self.assertEqual('https://example.test/source', request.get_full_url())
         self.assertEqual(12, timeout)
+        self.assertTrue(opener.response.closed)
+
+    def test_read_closes_response_when_body_read_fails(self):
+        response = FakeResponse(error=RuntimeError('read failed'))
+        opener = FakeOpener(response=response)
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda: opener
+
+        try:
+            product = scrape.Product(None, 'https://example.test/source')
+            self.assertRaises(RuntimeError, product.read)
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertTrue(response.closed)
 
     def test_product_rejects_non_positive_timeout(self):
         self.assertRaises(ValueError, scrape.Product, None, 'https://example.test/source', timeout=0)

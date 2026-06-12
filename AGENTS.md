@@ -49,6 +49,11 @@
 - See `docs/plans/2026-06-08-scrape-electrical-baseline.md` for the canonical scraper/database safety baseline.
 - See `docs/plans/2026-06-08-network-timeout.md` for the network timeout guard.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link handling.
+- Hosted checks must run the complete offline Python 2 suite in the reviewed
+  digest-pinned container with credential-free checkout, read-only
+  permissions, and no live dependency installation.
+- Run `make contract-test` after workflow changes. Duplicate, relocated, or
+  contradictory credential settings and other policy drift must fail closed.
 
 ## Agent workflow
 

@@ -1,27 +1,22 @@
-.PHONY: build check lint test verify
+ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 PYTHON ?= python2
-PYTHON3 ?= python3
 export PYTHONDONTWRITEBYTECODE = 1
 
+.PHONY: build check contract-test lint test verify
+
 lint:
-	@if command -v $(PYTHON) >/dev/null 2>&1; then \
-		$(PYTHON) -B -c 'compile(open("scrape.py").read(), "scrape.py", "exec")'; \
-		$(PYTHON) -B scripts/check-docs-plans.py; \
-	else \
-		echo "$(PYTHON) unavailable; running Python 3 documentation-plan baseline only"; \
-		$(PYTHON3) -B scripts/check-docs-plans.py; \
-	fi
+	$(PYTHON) -B "$(ROOT)/scripts/check-docs-plans.py"
+	cd "$(ROOT)" && $(PYTHON) -B -c 'compile(open("scrape.py").read(), "scrape.py", "exec")'
+
+contract-test:
+	$(PYTHON) -B "$(ROOT)/scripts/test_workflow_contract.py"
 
 test:
-	@if command -v $(PYTHON) >/dev/null 2>&1; then \
-		$(PYTHON) -B -m unittest discover -s tests; \
-	else \
-		echo "$(PYTHON) unavailable; skipping legacy Python 2 tests"; \
-	fi
+	cd "$(ROOT)" && $(PYTHON) -B -m unittest discover -s tests
 
 build: lint
 
-verify: lint test build
+verify: lint contract-test test
 
 check: verify

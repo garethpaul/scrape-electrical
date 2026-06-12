@@ -2,11 +2,16 @@
 
 ## 2026-06-10
 
-- Added a GitHub Actions workflow that runs `make check` with Python 3.12 for
-  pushes and pull requests.
-- Let `make check` run the Python 3 documentation-plan baseline when `python2`
-  is unavailable, while preserving Python 2 compile and unit tests when it is
-  installed.
+- Closed scraper HTTP responses after successful and failed body reads, with
+  Python 2 regression coverage.
+- Added a least-privilege GitHub Actions workflow that runs the complete
+  offline `make check` gate with credential-free checkout pinned by commit.
+- Replaced the prepared Python 3 skip path with all 20 offline tests in a
+  digest-pinned Python 2.7.18 container.
+- Made the canonical gate independent of the caller's current directory.
+- Added exact workflow-policy validation and 17 hostile mutations covering
+  triggers, credentials, actions, permissions, runner, timeout, image digest,
+  failure handling, runtime proof, dependency installation, and commands.
 
 ## 2026-06-09
 

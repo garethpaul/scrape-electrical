@@ -40,9 +40,14 @@ against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
-GitHub Actions runs `make check` with Python 3.12, which exercises the
-documentation-plan baseline; run the Python 2 compile/tests on a host with
-`python2` before changing parser or database behavior.
+HTTP responses must close after body reads, including parser or transport
+failure paths, so repeated scraping does not leak network resources.
+GitHub Actions runs the complete offline gate in a digest-pinned Python 2.7.18
+container. It installs no live scraping or database dependencies and does not
+receive database credentials.
+CI checkout credentials stay disabled, actions remain pinned by commit, and
+permissions remain read-only. Hostile mutations reject contradictory
+credentials, dependency installation, and other workflow-policy drift.
 
 ## Dependency and Supply Chain Security
 

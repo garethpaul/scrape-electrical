@@ -90,17 +90,20 @@ python2 scrape.py --url https://example.test/products \
 
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
-- On hosts without `python2`, `make check` runs the Python 3-compatible
-  documentation-plan baseline and reports that legacy Python 2 tests were
-  skipped.
-- GitHub Actions runs that hosted `make check` path with Python 3.12 for pushes
-  and pull requests.
+- `make check` requires Python 2 and runs the documentation, workflow-policy,
+  syntax, and all 20
+  mocked database and parser tests without successful skip paths.
+- GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
+  container with credential-free pinned checkout, read-only permissions, and
+  no live scraper/database packages.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
 - Parser tests also cover non-web link rejection and relative product-link
   normalization.
 - Parser tests also cover source page URL scheme validation and whitespace
   normalization.
+- Network tests require HTTP responses to close after successful and failed
+  body reads.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
 - Database tests also cover cursor-first cleanup and connection close attempts
@@ -150,6 +153,10 @@ When the required SDK or runtime is unavailable, use static checks and source re
   verification coverage.
 - See `docs/plans/2026-06-10-ci-baseline.md` for the GitHub Actions `make
   check` baseline.
+- See `docs/plans/2026-06-10-hosted-legacy-validation.md` for the enforced
+  Python 2.7 offline test boundary.
+- See `docs/plans/2026-06-10-http-response-cleanup.md` for scraper response
+  cleanup on successful and failed reads.
 
 ## Contributing
 

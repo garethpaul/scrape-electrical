@@ -87,7 +87,11 @@ class Product(object):
 
     def read(self):
         opener = urllib2.build_opener()
-        return opener.open(self.build_request(), timeout=self.timeout).read()
+        response = opener.open(self.build_request(), timeout=self.timeout)
+        try:
+            return response.read()
+        finally:
+            response.close()
 
     def build_request(self):
         return urllib2.Request(self.url)

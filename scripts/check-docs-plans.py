@@ -5,6 +5,8 @@ import glob
 import os
 import sys
 
+from workflow_contract import validate as validate_workflow
+
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DOCS_PLANS = os.path.join(ROOT, 'docs', 'plans')
@@ -13,6 +15,9 @@ LINK_SCHEME_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-product-link-scheme-guar
 CLI_DRY_RUN_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-cli-dry-run.md')
 BYTECODE_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-bytecode-free-verification.md')
 CI_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-ci-baseline.md')
+HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validation.md')
+CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
+MAKEFILE = os.path.join(ROOT, 'Makefile')
 
 
 def rel(path):
@@ -26,16 +31,16 @@ def read(path):
 
 failures = []
 
-if not os.path.isfile(CANONICAL_PLAN):
-    failures.append('%s is missing' % rel(CANONICAL_PLAN))
-if not os.path.isfile(LINK_SCHEME_PLAN):
-    failures.append('%s is missing' % rel(LINK_SCHEME_PLAN))
-if not os.path.isfile(CLI_DRY_RUN_PLAN):
-    failures.append('%s is missing' % rel(CLI_DRY_RUN_PLAN))
-if not os.path.isfile(BYTECODE_PLAN):
-    failures.append('%s is missing' % rel(BYTECODE_PLAN))
-if not os.path.isfile(CI_PLAN):
-    failures.append('%s is missing' % rel(CI_PLAN))
+for required_path in (
+        CANONICAL_PLAN,
+        LINK_SCHEME_PLAN,
+        CLI_DRY_RUN_PLAN,
+        BYTECODE_PLAN,
+        CI_PLAN,
+        HOSTED_LEGACY_PLAN,
+        CI_WORKFLOW):
+    if not os.path.isfile(required_path):
+        failures.append('%s is missing' % rel(required_path))
 
 plans = sorted(glob.glob(os.path.join(DOCS_PLANS, '*.md')))
 if not plans:
@@ -50,6 +55,9 @@ bytecode_files = []
 for dirpath, dirnames, filenames in os.walk(ROOT):
     if '.git' in dirnames:
         dirnames.remove('.git')
+    if '__pycache__' in dirnames:
+        bytecode_files.append(rel(os.path.join(dirpath, '__pycache__')))
+        dirnames.remove('__pycache__')
     for filename in filenames:
         if filename.endswith(('.pyc', '.pyo')):
             bytecode_files.append(rel(os.path.join(dirpath, filename)))
@@ -57,17 +65,29 @@ for dirpath, dirnames, filenames in os.walk(ROOT):
 if bytecode_files:
     failures.append('Python bytecode must not be present: %s' % ', '.join(sorted(bytecode_files)))
 
-workflow_path = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
-workflow = read(workflow_path) if os.path.isfile(workflow_path) else ''
-makefile = read(os.path.join(ROOT, 'Makefile'))
+workflow = read(CI_WORKFLOW) if os.path.isfile(CI_WORKFLOW) else ''
+for requirement in validate_workflow(workflow):
+    failures.append('GitHub Actions workflow must %s' % requirement)
+
+makefile = read(MAKEFILE) if os.path.isfile(MAKEFILE) else ''
+required_makefile_phrases = (
+    'ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))',
+    'PYTHON ?= python2',
+    '$(PYTHON) -B "$(ROOT)/scripts/check-docs-plans.py"',
+    '$(PYTHON) -B "$(ROOT)/scripts/test_workflow_contract.py"',
+    '$(PYTHON) -B -m unittest discover -s tests',
+    'verify: lint contract-test test',
+)
+for phrase in required_makefile_phrases:
+    if phrase not in makefile:
+        failures.append('Makefile must contain %s' % phrase)
+if 'command -v $(PYTHON)' in makefile or 'unavailable; skipping legacy Python 2 tests' in makefile:
+    failures.append('Makefile must require Python 2 scraper verification instead of skipping it')
+
 readme = read(os.path.join(ROOT, 'README.md'))
 vision = read(os.path.join(ROOT, 'VISION.md'))
 changes = read(os.path.join(ROOT, 'CHANGES.md'))
 scrape_source = read(os.path.join(ROOT, 'scrape.py'))
-if 'actions/setup-python@v5' not in workflow or 'python-version: "3.12"' not in workflow or 'make check' not in workflow:
-    failures.append('GitHub Actions workflow must install Python 3.12 and run make check')
-if 'PYTHON3 ?= python3' not in makefile or 'Python 3 documentation-plan baseline only' not in makefile:
-    failures.append('Makefile must keep a Python 3 docs-plan baseline when python2 is unavailable')
 if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
     failures.append('scrape.py must not build a psycopg2 connection string by interpolation')
 if 'psycopg2.connect(\n            user=self.dbuser,' not in scrape_source:
