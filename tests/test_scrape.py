@@ -67,14 +67,17 @@ class FakeProductDatabase(object):
 
 
 class FakeResponse(object):
-    def __init__(self, error=None):
+    def __init__(self, body='response body', error=None):
+        self.body = body
         self.error = error
         self.closed = False
+        self.read_sizes = []
 
-    def read(self):
+    def read(self, size=None):
+        self.read_sizes.append(size)
         if self.error is not None:
             raise self.error
-        return 'response body'
+        return self.body
 
     def close(self):
         self.closed = True
@@ -245,11 +248,37 @@ class CLITests(unittest.TestCase):
             '--url', 'https://example.test/source',
             '--dry-run',
             '--timeout', '7',
+            '--max-response-bytes', '4096',
         ])
 
         self.assertEqual('https://example.test/source', options.url)
         self.assertTrue(options.dry_run)
         self.assertEqual(7.0, options.timeout)
+        self.assertEqual(4096, options.max_response_bytes)
+
+    def test_run_cli_forwards_response_limit(self):
+        calls = []
+        original_database_from_options = scrape.database_from_options
+        original_main = scrape.main
+        scrape.database_from_options = lambda options: 'database'
+        scrape.main = lambda database, url, timeout, max_response_bytes: calls.append(
+            (database, url, timeout, max_response_bytes)
+        )
+        try:
+            scrape.run_cli([
+                '--url', 'https://example.test/source',
+                '--dry-run',
+                '--timeout', '9',
+                '--max-response-bytes', '2048',
+            ])
+        finally:
+            scrape.database_from_options = original_database_from_options
+            scrape.main = original_main
+
+        self.assertEqual(
+            [('database', 'https://example.test/source', 9.0, 2048)],
+            calls,
+        )
 
     def test_dry_run_database_prints_parsed_rows_without_closing_resources(self):
         output = StringIO.StringIO()
@@ -333,7 +362,49 @@ class ProductParserTests(unittest.TestCase):
         request, timeout = opener.calls[0]
         self.assertEqual('https://example.test/source', request.get_full_url())
         self.assertEqual(12, timeout)
+        self.assertEqual(
+            [scrape.DEFAULT_MAX_RESPONSE_BYTES + 1],
+            opener.response.read_sizes,
+        )
         self.assertTrue(opener.response.closed)
+
+    def test_read_accepts_body_at_configured_limit(self):
+        response = FakeResponse(body='1234')
+        opener = FakeOpener(response=response)
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda: opener
+
+        try:
+            product = scrape.Product(
+                None,
+                'https://example.test/source',
+                max_response_bytes=4,
+            )
+            self.assertEqual('1234', product.read())
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertEqual([5], response.read_sizes)
+        self.assertTrue(response.closed)
+
+    def test_read_rejects_and_closes_oversized_body(self):
+        response = FakeResponse(body='12345')
+        opener = FakeOpener(response=response)
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda: opener
+
+        try:
+            product = scrape.Product(
+                None,
+                'https://example.test/source',
+                max_response_bytes=4,
+            )
+            self.assertRaises(ValueError, product.read)
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertEqual([5], response.read_sizes)
+        self.assertTrue(response.closed)
 
     def test_read_closes_response_when_body_read_fails(self):
         response = FakeResponse(error=RuntimeError('read failed'))
@@ -351,6 +422,25 @@ class ProductParserTests(unittest.TestCase):
 
     def test_product_rejects_non_positive_timeout(self):
         self.assertRaises(ValueError, scrape.Product, None, 'https://example.test/source', timeout=0)
+
+    def test_product_rejects_non_positive_response_limit(self):
+        self.assertRaises(
+            ValueError,
+            scrape.Product,
+            None,
+            'https://example.test/source',
+            max_response_bytes=0,
+        )
+
+    def test_product_rejects_non_integer_response_limit(self):
+        for value in [True, 1.5, '4']:
+            self.assertRaises(
+                ValueError,
+                scrape.Product,
+                None,
+                'https://example.test/source',
+                max_response_bytes=value,
+            )
 
     def test_product_rejects_non_web_source_urls(self):
         for source_url in [

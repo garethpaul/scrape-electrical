@@ -7,6 +7,9 @@ import urllib2
 from urlparse import urljoin, urlparse
 
 
+DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+
+
 class Database(object):
     """
     This is the database class for a postgres database. This posts based on parsed arguments
@@ -66,13 +69,19 @@ class Product(object):
     """
     The product class is for handling products to find and insert
     """
-    def __init__(self, database, url, timeout=30):
+    def __init__(self, database, url, timeout=30,
+                 max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES):
         # Set variables for class product.
         self.database = database
         self.url = self.normalized_source_url(url)
         if timeout <= 0:
             raise ValueError('timeout must be positive')
         self.timeout = timeout
+        if (isinstance(max_response_bytes, bool) or
+                not isinstance(max_response_bytes, (int, long)) or
+                max_response_bytes <= 0):
+            raise ValueError('maximum response size must be a positive integer')
+        self.max_response_bytes = max_response_bytes
 
     def normalized_source_url(self, url):
         if not url or not url.strip():
@@ -89,7 +98,12 @@ class Product(object):
         opener = urllib2.build_opener()
         response = opener.open(self.build_request(), timeout=self.timeout)
         try:
-            return response.read()
+            body = response.read(self.max_response_bytes + 1)
+            if len(body) > self.max_response_bytes:
+                raise ValueError(
+                    'response body exceeds maximum of %d bytes' % self.max_response_bytes
+                )
+            return body
         finally:
             response.close()
 
@@ -163,6 +177,12 @@ def build_arg_parser():
         help='print parsed rows instead of writing to PostgreSQL'
     )
     parser.add_argument('--timeout', type=float, default=30, help='network timeout in seconds')
+    parser.add_argument(
+        '--max-response-bytes',
+        type=int,
+        default=DEFAULT_MAX_RESPONSE_BYTES,
+        help='maximum source response size in bytes'
+    )
     parser.add_argument('--db-name', dest='db_name', help='PostgreSQL database name')
     parser.add_argument('--db-user', dest='db_user', help='PostgreSQL user')
     parser.add_argument('--db-password', dest='db_password', help='PostgreSQL password')
@@ -208,12 +228,23 @@ def run_cli(argv=None):
     except ValueError as error:
         parser.error(str(error))
 
-    main(database, options.url, timeout=options.timeout)
+    main(
+        database,
+        options.url,
+        timeout=options.timeout,
+        max_response_bytes=options.max_response_bytes
+    )
 
 
-def main(database, url, timeout=30):
+def main(database, url, timeout=30,
+         max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES):
     # put database with Product and include the url
-    p = Product(database, url, timeout=timeout)
+    p = Product(
+        database,
+        url,
+        timeout=timeout,
+        max_response_bytes=max_response_bytes
+    )
     # find products and place them in a database
     p.find()
 

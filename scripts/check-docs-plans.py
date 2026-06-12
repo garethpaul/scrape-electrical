@@ -16,6 +16,7 @@ CLI_DRY_RUN_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-cli-dry-run.md')
 BYTECODE_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-bytecode-free-verification.md')
 CI_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-ci-baseline.md')
 HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validation.md')
+RESPONSE_BODY_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-response-body-size-limit.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -38,6 +39,7 @@ for required_path in (
         BYTECODE_PLAN,
         CI_PLAN,
         HOSTED_LEGACY_PLAN,
+        RESPONSE_BODY_LIMIT_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -120,6 +122,27 @@ if "'missing database options for live writes:" not in scrape_source:
     failures.append('scrape.py must reject live CLI writes without complete DB options')
 if "if __name__ == '__main__':\n    run_cli()" not in scrape_source:
     failures.append('scrape.py must run the CLI entry point when executed directly')
+for phrase in (
+        'DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024',
+        'max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES',
+        'isinstance(max_response_bytes, bool) or',
+        'not isinstance(max_response_bytes, (int, long)) or',
+        'response.read(self.max_response_bytes + 1)',
+        'if len(body) > self.max_response_bytes:',
+        "'--max-response-bytes'",
+        'max_response_bytes=options.max_response_bytes'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain response body size limit fragment %r' % phrase)
+
+test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
+for test_name in (
+        'test_read_accepts_body_at_configured_limit',
+        'test_read_rejects_and_closes_oversized_body',
+        'test_product_rejects_non_positive_response_limit',
+        'test_product_rejects_non_integer_response_limit',
+        'test_run_cli_forwards_response_limit'):
+    if test_name not in test_source:
+        failures.append('tests/test_scrape.py must retain %s' % test_name)
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -136,6 +159,11 @@ if 'Source page URLs must also use HTTP(S)' not in security:
     failures.append('SECURITY.md must document source URL scheme validation')
 if 'GitHub Actions' not in readme or 'GitHub Actions' not in vision or 'GitHub Actions' not in security or 'GitHub Actions' not in changes:
     failures.append('docs must mention the GitHub Actions CI baseline')
+if ('response body size limit' not in readme or
+        'response body size limit' not in vision or
+        'response body size limit' not in security or
+        'response body size limit' not in changes):
+    failures.append('docs must describe the response body size limit')
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

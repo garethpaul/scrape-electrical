@@ -42,6 +42,8 @@ Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
 HTTP responses must close after body reads, including parser or transport
 failure paths, so repeated scraping does not leak network resources.
+The default 5 MiB response body size limit rejects oversized pages before HTML
+parsing while still closing the response; increases require explicit CLI input.
 GitHub Actions runs the complete offline gate in a digest-pinned Python 2.7.18
 container. It installs no live scraping or database dependencies and does not
 receive database credentials.

@@ -1,12 +1,17 @@
 # Changes
 
+## 2026-06-12
+
+- Added a configurable 5 MiB response body size limit with exact-boundary,
+  oversized-read, closure, validation, and CLI-forwarding coverage.
+
 ## 2026-06-10
 
 - Closed scraper HTTP responses after successful and failed body reads, with
   Python 2 regression coverage.
 - Added a least-privilege GitHub Actions workflow that runs the complete
   offline `make check` gate with credential-free checkout pinned by commit.
-- Replaced the prepared Python 3 skip path with all 20 offline tests in a
+- Replaced the prepared Python 3 skip path with the complete offline tests in a
   digest-pinned Python 2.7.18 container.
 - Made the canonical gate independent of the caller's current directory.
 - Added exact workflow-policy validation and 17 hostile mutations covering
