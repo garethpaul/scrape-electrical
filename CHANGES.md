@@ -1,5 +1,13 @@
 # Changes
 
+## 2026-06-10
+
+- Added a GitHub Actions workflow that runs `make check` with Python 3.12 for
+  pushes and pull requests.
+- Let `make check` run the Python 3 documentation-plan baseline when `python2`
+  is unavailable, while preserving Python 2 compile and unit tests when it is
+  installed.
+
 ## 2026-06-09
 
 - Kept Python verification bytecode-free and added checker coverage to reject

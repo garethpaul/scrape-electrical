@@ -40,6 +40,9 @@ against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
+GitHub Actions runs `make check` with Python 3.12, which exercises the
+documentation-plan baseline; run the Python 2 compile/tests on a host with
+`python2` before changing parser or database behavior.
 
 ## Dependency and Supply Chain Security
 

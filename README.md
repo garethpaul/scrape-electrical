@@ -90,6 +90,11 @@ python2 scrape.py --url https://example.test/products \
 
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
+- On hosts without `python2`, `make check` runs the Python 3-compatible
+  documentation-plan baseline and reports that legacy Python 2 tests were
+  skipped.
+- GitHub Actions runs that hosted `make check` path with Python 3.12 for pushes
+  and pull requests.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
 - Parser tests also cover non-web link rejection and relative product-link
@@ -143,6 +148,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   scheme validation.
 - See `docs/plans/2026-06-09-bytecode-free-verification.md` for bytecode-free
   verification coverage.
+- See `docs/plans/2026-06-10-ci-baseline.md` for the GitHub Actions `make
+  check` baseline.
 
 ## Contributing
 
