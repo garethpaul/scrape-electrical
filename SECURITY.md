@@ -40,6 +40,10 @@ against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
+The same-host redirect boundary allows relative and same-host HTTPS redirects
+but rejects cross-host, alternate-port, HTTPS-to-HTTP downgrade, non-web,
+hostless, and credential-bearing targets before the follow-up request. It does
+not claim DNS-rebinding protection.
 HTTP responses must close after body reads, including parser or transport
 failure paths, so repeated scraping does not leak network resources.
 The default 5 MiB response body size limit rejects oversized pages before HTML

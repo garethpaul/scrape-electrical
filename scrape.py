@@ -10,6 +10,63 @@ from urlparse import urljoin, urlparse
 DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 
 
+class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):
+    def __init__(self, source_url):
+        parsed_source = urlparse(source_url)
+        self.source_scheme = parsed_source.scheme
+        self.source_host = parsed_source.hostname.lower()
+        self.source_port = parsed_source.port or self.default_port(self.source_scheme)
+        self.safe_source_url = '%s://%s/' % (parsed_source.scheme, self.source_host)
+
+    def default_port(self, scheme):
+        return 443 if scheme == 'https' else 80
+
+    def rejected_redirect(self, code, headers, fp):
+        return urllib2.HTTPError(
+            self.safe_source_url,
+            code,
+            'redirect target violates same-host policy',
+            headers,
+            fp
+        )
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        try:
+            raw_redirect = urlparse(newurl)
+            current_scheme = urlparse(req.get_full_url()).scheme
+            redirect_url = urljoin(req.get_full_url(), newurl)
+            parsed_redirect = urlparse(redirect_url)
+            redirect_host = parsed_redirect.hostname
+            redirect_port = parsed_redirect.port or self.default_port(parsed_redirect.scheme)
+        except ValueError:
+            raise self.rejected_redirect(code, headers, fp)
+
+        same_origin = (
+            parsed_redirect.scheme == self.source_scheme and
+            redirect_port == self.source_port
+        )
+        standard_https_upgrade = (
+            self.source_scheme == 'http' and self.source_port == 80 and
+            parsed_redirect.scheme == 'https' and redirect_port == 443
+        )
+        allowed = (
+            not (raw_redirect.scheme and not raw_redirect.netloc) and
+            parsed_redirect.scheme in ('http', 'https') and
+            not (current_scheme == 'https' and parsed_redirect.scheme == 'http') and
+            redirect_host is not None and
+            redirect_host.lower() == self.source_host and
+            (same_origin or standard_https_upgrade) and
+            parsed_redirect.username is None and
+            parsed_redirect.password is None
+        )
+        if not allowed:
+            raise self.rejected_redirect(code, headers, fp)
+
+        return urllib2.HTTPRedirectHandler.redirect_request(
+            self, req, fp, code, msg, headers, redirect_url
+        )
+
+
 class Database(object):
     """
     This is the database class for a postgres database. This posts based on parsed arguments
@@ -88,14 +145,19 @@ class Product(object):
             raise ValueError('source URL must use http or https and include a host')
 
         source_url = url.strip()
-        parsed_url = urlparse(source_url)
-        if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
+        try:
+            parsed_url = urlparse(source_url)
+            source_host = parsed_url.hostname
+        except ValueError:
+            raise ValueError('source URL must use http or https and include a host')
+        if (parsed_url.scheme not in ('http', 'https') or
+                not parsed_url.netloc or source_host is None):
             raise ValueError('source URL must use http or https and include a host')
 
         return source_url
 
     def read(self):
-        opener = urllib2.build_opener()
+        opener = urllib2.build_opener(SameHostRedirectHandler(self.url))
         response = opener.open(self.build_request(), timeout=self.timeout)
         try:
             body = response.read(self.max_response_bytes + 1)

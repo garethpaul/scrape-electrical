@@ -347,10 +347,63 @@ class CLITests(unittest.TestCase):
 
 
 class ProductParserTests(unittest.TestCase):
+    def redirect_request(self, source_url, current_url, redirect_url):
+        handler = scrape.SameHostRedirectHandler(source_url)
+        request = scrape.urllib2.Request(current_url)
+        return handler.redirect_request(
+            request, None, 302, 'Found', {}, redirect_url
+        )
+
+    def test_redirect_handler_allows_same_host_relative_redirect(self):
+        request = self.redirect_request(
+            'https://example.test/source',
+            'https://example.test/source',
+            '/next?page=2',
+        )
+
+        self.assertEqual('https://example.test/next?page=2', request.get_full_url())
+
+    def test_redirect_handler_allows_same_host_https_upgrade(self):
+        request = self.redirect_request(
+            'http://example.test/source',
+            'http://example.test/source',
+            'https://EXAMPLE.test/secure',
+        )
+
+        self.assertEqual('https://EXAMPLE.test/secure', request.get_full_url())
+
+    def test_redirect_handler_rejects_unsafe_targets_without_echoing_them(self):
+        unsafe_targets = [
+            'https://other.test/private',
+            '//other.test/private',
+            'http://example.test/insecure',
+            'https://example.test:8443/private',
+            'file:///etc/passwd',
+            'https:///missing-host',
+            'http://[invalid-ipv6',
+            'http://:80/missing-hostname',
+            'https://user:secret@example.test/private',
+        ]
+
+        for redirect_url in unsafe_targets:
+            try:
+                self.redirect_request(
+                    'https://example.test/source',
+                    'https://example.test/source',
+                    redirect_url,
+                )
+            except scrape.urllib2.HTTPError as error:
+                self.assertEqual('redirect target violates same-host policy', error.msg)
+                self.assertEqual('https://example.test/', error.filename)
+                self.assertNotIn(redirect_url, str(error))
+            else:
+                self.fail('expected redirect rejection for %r' % redirect_url)
+
     def test_read_uses_bounded_timeout(self):
         opener = FakeOpener()
         original_build_opener = scrape.urllib2.build_opener
-        scrape.urllib2.build_opener = lambda: opener
+        handlers = []
+        scrape.urllib2.build_opener = lambda *args: handlers.extend(args) or opener
 
         try:
             product = scrape.Product(None, 'https://example.test/source', timeout=12)
@@ -359,6 +412,8 @@ class ProductParserTests(unittest.TestCase):
             scrape.urllib2.build_opener = original_build_opener
 
         self.assertEqual(1, len(opener.calls))
+        self.assertEqual(1, len(handlers))
+        self.assertIsInstance(handlers[0], scrape.SameHostRedirectHandler)
         request, timeout = opener.calls[0]
         self.assertEqual('https://example.test/source', request.get_full_url())
         self.assertEqual(12, timeout)
@@ -372,7 +427,7 @@ class ProductParserTests(unittest.TestCase):
         response = FakeResponse(body='1234')
         opener = FakeOpener(response=response)
         original_build_opener = scrape.urllib2.build_opener
-        scrape.urllib2.build_opener = lambda: opener
+        scrape.urllib2.build_opener = lambda *args: opener
 
         try:
             product = scrape.Product(
@@ -391,7 +446,7 @@ class ProductParserTests(unittest.TestCase):
         response = FakeResponse(body='12345')
         opener = FakeOpener(response=response)
         original_build_opener = scrape.urllib2.build_opener
-        scrape.urllib2.build_opener = lambda: opener
+        scrape.urllib2.build_opener = lambda *args: opener
 
         try:
             product = scrape.Product(
@@ -410,7 +465,7 @@ class ProductParserTests(unittest.TestCase):
         response = FakeResponse(error=RuntimeError('read failed'))
         opener = FakeOpener(response=response)
         original_build_opener = scrape.urllib2.build_opener
-        scrape.urllib2.build_opener = lambda: opener
+        scrape.urllib2.build_opener = lambda *args: opener
 
         try:
             product = scrape.Product(None, 'https://example.test/source')
@@ -450,6 +505,7 @@ class ProductParserTests(unittest.TestCase):
             'javascript:alert(1)',
             'example.test/source',
             'https:///missing-host',
+            'http://[invalid-ipv6',
         ]:
             self.assertRaises(ValueError, scrape.Product, None, source_url)
 

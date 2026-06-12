@@ -17,6 +17,7 @@ BYTECODE_PLAN = os.path.join(DOCS_PLANS, '2026-06-09-bytecode-free-verification.
 CI_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-ci-baseline.md')
 HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validation.md')
 RESPONSE_BODY_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-response-body-size-limit.md')
+REDIRECT_BOUNDARY_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-same-host-redirect-boundary.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -40,6 +41,7 @@ for required_path in (
         CI_PLAN,
         HOSTED_LEGACY_PLAN,
         RESPONSE_BODY_LIMIT_PLAN,
+        REDIRECT_BOUNDARY_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -133,6 +135,30 @@ for phrase in (
         'max_response_bytes=options.max_response_bytes'):
     if phrase not in scrape_source:
         failures.append('scrape.py must retain response body size limit fragment %r' % phrase)
+for phrase in (
+        'class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):',
+        'self.source_port = parsed_source.port or self.default_port(self.source_scheme)',
+        'def default_port(self, scheme):',
+        'def rejected_redirect(self, code, headers, fp):',
+        'raise self.rejected_redirect(code, headers, fp)',
+        'raw_redirect = urlparse(newurl)',
+        'current_scheme = urlparse(req.get_full_url()).scheme',
+        'not (raw_redirect.scheme and not raw_redirect.netloc)',
+        'redirect_url = urljoin(req.get_full_url(), newurl)',
+        "parsed_redirect.scheme in ('http', 'https')",
+        "not (current_scheme == 'https' and parsed_redirect.scheme == 'http')",
+        'redirect_port == self.source_port',
+        'standard_https_upgrade = (',
+        '(same_origin or standard_https_upgrade)',
+        'redirect_host.lower() == self.source_host',
+        'parsed_redirect.username is None',
+        'parsed_redirect.password is None',
+        "'redirect target violates same-host policy'",
+        'urllib2.build_opener(SameHostRedirectHandler(self.url))'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain same-host redirect fragment %r' % phrase)
+if 'source_host = parsed_url.hostname' not in scrape_source or 'source_host is None' not in scrape_source:
+    failures.append('scrape.py must require a parsed source hostname before network reads')
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
 for test_name in (
@@ -141,6 +167,12 @@ for test_name in (
         'test_product_rejects_non_positive_response_limit',
         'test_product_rejects_non_integer_response_limit',
         'test_run_cli_forwards_response_limit'):
+    if test_name not in test_source:
+        failures.append('tests/test_scrape.py must retain %s' % test_name)
+for test_name in (
+        'test_redirect_handler_allows_same_host_relative_redirect',
+        'test_redirect_handler_allows_same_host_https_upgrade',
+        'test_redirect_handler_rejects_unsafe_targets_without_echoing_them'):
     if test_name not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % test_name)
 
@@ -164,6 +196,13 @@ if ('response body size limit' not in readme or
         'response body size limit' not in security or
         'response body size limit' not in changes):
     failures.append('docs must describe the response body size limit')
+if ('same-host redirect' not in readme or
+        'same-host redirect' not in vision or
+        'same-host redirect' not in security or
+        'same-host redirect' not in changes):
+    failures.append('docs must describe the same-host redirect boundary')
+if 'all 28' not in readme:
+    failures.append('README.md must record the complete 28-test offline suite')
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

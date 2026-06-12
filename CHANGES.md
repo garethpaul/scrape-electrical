@@ -4,6 +4,9 @@
 
 - Added a configurable 5 MiB response body size limit with exact-boundary,
   oversized-read, closure, validation, and CLI-forwarding coverage.
+- Added a same-host redirect boundary that permits relative paths and HTTPS
+  upgrades while rejecting cross-host, alternate-port, downgrade, non-web,
+  hostless, or credential targets.
 
 ## 2026-06-10
 
