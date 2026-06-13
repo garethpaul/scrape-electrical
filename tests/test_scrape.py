@@ -354,6 +354,12 @@ class ProductParserTests(unittest.TestCase):
             request, None, 302, 'Found', {}, redirect_url
         )
 
+    def test_redirect_handler_has_explicit_hop_limits(self):
+        handler = scrape.SameHostRedirectHandler('https://example.test/source')
+
+        self.assertEqual(2, handler.max_repeats)
+        self.assertEqual(5, handler.max_redirections)
+
     def test_redirect_handler_allows_same_host_relative_redirect(self):
         request = self.redirect_request(
             'https://example.test/source',

@@ -18,6 +18,7 @@ CI_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-ci-baseline.md')
 HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validation.md')
 RESPONSE_BODY_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-response-body-size-limit.md')
 REDIRECT_BOUNDARY_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-same-host-redirect-boundary.md')
+REDIRECT_HOP_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-redirect-hop-limit.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -42,6 +43,7 @@ for required_path in (
         HOSTED_LEGACY_PLAN,
         RESPONSE_BODY_LIMIT_PLAN,
         REDIRECT_BOUNDARY_PLAN,
+        REDIRECT_HOP_LIMIT_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -137,6 +139,8 @@ for phrase in (
         failures.append('scrape.py must retain response body size limit fragment %r' % phrase)
 for phrase in (
         'class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):',
+        'max_repeats = 2',
+        'max_redirections = 5',
         'self.source_port = parsed_source.port or self.default_port(self.source_scheme)',
         'def default_port(self, scheme):',
         'def rejected_redirect(self, code, headers, fp):',
@@ -170,6 +174,7 @@ for test_name in (
     if test_name not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % test_name)
 for test_name in (
+        'test_redirect_handler_has_explicit_hop_limits',
         'test_redirect_handler_allows_same_host_relative_redirect',
         'test_redirect_handler_allows_same_host_https_upgrade',
         'test_redirect_handler_rejects_unsafe_targets_without_echoing_them'):
@@ -201,8 +206,13 @@ if ('same-host redirect' not in readme or
         'same-host redirect' not in security or
         'same-host redirect' not in changes):
     failures.append('docs must describe the same-host redirect boundary')
-if 'all 28' not in readme:
-    failures.append('README.md must record the complete 28-test offline suite')
+if ('redirect hop limit' not in readme or
+        'redirect hop limit' not in vision or
+        'redirect hop limit' not in security or
+        'redirect hop limit' not in changes):
+    failures.append('docs must describe the redirect hop limit')
+if 'all 29' not in readme:
+    failures.append('README.md must record the complete 29-test offline suite')
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

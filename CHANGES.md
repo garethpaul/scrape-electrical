@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-13
+
+- Added an explicit redirect hop limit of five total redirects and two repeats
+  of the same target, with Python 2 regression coverage.
+
 ## 2026-06-12
 
 - Added a configurable 5 MiB response body size limit with exact-boundary,

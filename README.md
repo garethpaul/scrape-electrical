@@ -85,6 +85,8 @@ python2 scrape.py --url https://example.test/products \
   same-host HTTPS upgrades are allowed, while cross-host, non-web, hostless,
   alternate-port, downgrade, and credential-bearing targets are rejected before
   the follow-up request.
+- The redirect hop limit permits at most five total redirects and two repeats
+  of the same target before Python 2 aborts the request chain.
 - Product cards without usable links are skipped rather than aborting the
   scrape.
 - Parsed product links are resolved against the source URL and must use
@@ -97,7 +99,7 @@ python2 scrape.py --url https://example.test/products \
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
 - `make check` requires Python 2 and runs the documentation, workflow-policy,
-  syntax, and all 28
+  syntax, and all 29
   mocked database and parser tests without successful skip paths.
 - GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
   container with credential-free pinned checkout, read-only permissions, and
@@ -112,6 +114,7 @@ python2 scrape.py --url https://example.test/products \
   body reads.
 - Network tests cover the exact response body size limit, oversized rejection,
   configured read size, and response closure.
+- Redirect tests lock the five-hop and two-repeat budgets.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
 - Database tests also cover cursor-first cleanup and connection close attempts

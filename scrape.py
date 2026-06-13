@@ -11,6 +11,9 @@ DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 
 
 class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):
+    max_repeats = 2
+    max_redirections = 5
+
     def __init__(self, source_url):
         parsed_source = urlparse(source_url)
         self.source_scheme = parsed_source.scheme
