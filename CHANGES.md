@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Rejected source URL credentials before initial request construction, with
+  non-disclosing Python 2 regression coverage.
 - Added an explicit redirect hop limit of five total redirects and two repeats
   of the same target, with Python 2 regression coverage.
 

@@ -520,6 +520,20 @@ class ProductParserTests(unittest.TestCase):
 
         self.assertEqual('https://example.test/source', product.url)
 
+    def test_product_rejects_source_url_credentials_without_echoing_them(self):
+        for source_url in [
+            'https://operator@example.test/source',
+            'https://:password@example.test/source',
+            'https://user%40name:pass%2Fword@example.test/source',
+        ]:
+            try:
+                scrape.Product(None, source_url)
+            except ValueError as error:
+                self.assertEqual('source URL must not include credentials', str(error))
+                self.assertNotIn(source_url, str(error))
+            else:
+                self.fail('expected source credential rejection')
+
     def test_build_request_uses_plain_url_without_spoofing_headers(self):
         product = scrape.Product(None, 'https://example.test/source')
 

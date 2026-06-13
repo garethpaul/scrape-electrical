@@ -19,6 +19,7 @@ HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validati
 RESPONSE_BODY_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-response-body-size-limit.md')
 REDIRECT_BOUNDARY_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-same-host-redirect-boundary.md')
 REDIRECT_HOP_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-redirect-hop-limit.md')
+SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-guard.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -44,6 +45,7 @@ for required_path in (
         RESPONSE_BODY_LIMIT_PLAN,
         REDIRECT_BOUNDARY_PLAN,
         REDIRECT_HOP_LIMIT_PLAN,
+        SOURCE_USERINFO_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -163,6 +165,9 @@ for phrase in (
         failures.append('scrape.py must retain same-host redirect fragment %r' % phrase)
 if 'source_host = parsed_url.hostname' not in scrape_source or 'source_host is None' not in scrape_source:
     failures.append('scrape.py must require a parsed source hostname before network reads')
+if ('parsed_url.username is not None or parsed_url.password is not None' not in scrape_source or
+        "raise ValueError('source URL must not include credentials')" not in scrape_source):
+    failures.append('scrape.py must reject source URL credentials before network reads')
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
 for test_name in (
@@ -180,6 +185,8 @@ for test_name in (
         'test_redirect_handler_rejects_unsafe_targets_without_echoing_them'):
     if test_name not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % test_name)
+if 'test_product_rejects_source_url_credentials_without_echoing_them' not in test_source:
+    failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -211,8 +218,13 @@ if ('redirect hop limit' not in readme or
         'redirect hop limit' not in security or
         'redirect hop limit' not in changes):
     failures.append('docs must describe the redirect hop limit')
-if 'all 29' not in readme:
-    failures.append('README.md must record the complete 29-test offline suite')
+if ('source URL credentials' not in readme or
+        'source URL credentials' not in vision or
+        'source URL credentials' not in security or
+        'source URL credentials' not in changes):
+    failures.append('docs must describe the source URL credential boundary')
+if 'all 30' not in readme:
+    failures.append('README.md must record the complete 30-test offline suite')
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

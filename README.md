@@ -81,6 +81,8 @@ python2 scrape.py --url https://example.test/products \
   parsing; override it with `--max-response-bytes` for a reviewed target.
 - Source page URLs must use `http` or `https` and include a host before the
   scraper opens them.
+- Embedded source URL credentials are rejected before the scraper builds a
+  request.
 - Source-page redirects use a same-host redirect boundary: relative paths and
   same-host HTTPS upgrades are allowed, while cross-host, non-web, hostless,
   alternate-port, downgrade, and credential-bearing targets are rejected before
@@ -99,7 +101,7 @@ python2 scrape.py --url https://example.test/products \
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
 - `make check` requires Python 2 and runs the documentation, workflow-policy,
-  syntax, and all 29
+  syntax, and all 30
   mocked database and parser tests without successful skip paths.
 - GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
   container with credential-free pinned checkout, read-only permissions, and

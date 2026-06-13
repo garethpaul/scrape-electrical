@@ -40,6 +40,8 @@ against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
+The scraper rejects source URL credentials before request construction so
+userinfo cannot be carried into an initial fetch.
 The same-host redirect boundary allows relative and same-host HTTPS redirects
 but rejects cross-host, alternate-port, HTTPS-to-HTTP downgrade, non-web,
 hostless, and credential-bearing targets before the follow-up request. It does

@@ -1,6 +1,6 @@
 # Source URL Userinfo Guard
 
-## Status: Planned
+## Status: Completed
 
 ## Context
 
@@ -52,6 +52,28 @@ add focused hostile mutations for guard, tests, documentation, and plan status.
   digest-pinned Python 2.7.18 container with networking disabled.
 - Focused hostile mutations plus Python syntax, workflow YAML, bytecode,
   generated-artifact, secret, and `git diff --check` audits.
+
+## Work Completed
+
+- Rejected parsed source URLs whose authority contains a username or password
+  before request or opener construction.
+- Added non-disclosing Python 2 coverage for username-only, password-bearing,
+  and percent-encoded userinfo.
+- Extended the fail-closed checker and maintained security guidance with the
+  source credential boundary and 30-test suite count.
+
+## Verification Results
+
+- The focused source-userinfo regression passed under Python 2.7.
+- `make test` passed all 30 dependency-free offline tests.
+- Local and root-independent `make check` passed documentation contracts,
+  Python 2 syntax, all 17 workflow-policy mutations, and all 30 offline tests.
+- The exact digest-pinned Python 2.7.18 image passed `make check` with a
+  read-only checkout and disabled networking.
+- Six focused missing-guard, weakened-guard, missing-test, documentation,
+  suite-count, and plan-status mutations were rejected.
+- Workflow YAML parsing and bytecode inspection passed without generated
+  Python artifacts.
 
 ## Scope Boundary
 
