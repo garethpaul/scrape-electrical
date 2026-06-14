@@ -1,4 +1,4 @@
-ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 PYTHON ?= python2
 export PYTHONDONTWRITEBYTECODE = 1

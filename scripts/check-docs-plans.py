@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import glob
 import os
+import re
 import sys
 
 from workflow_contract import validate as validate_workflow
@@ -20,6 +21,7 @@ RESPONSE_BODY_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-response-body-si
 REDIRECT_BOUNDARY_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-same-host-redirect-boundary.md')
 REDIRECT_HOP_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-redirect-hop-limit.md')
 SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-guard.md')
+MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protection.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -46,6 +48,7 @@ for required_path in (
         REDIRECT_BOUNDARY_PLAN,
         REDIRECT_HOP_LIMIT_PLAN,
         SOURCE_USERINFO_PLAN,
+        MAKE_ROOT_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -78,8 +81,15 @@ for requirement in validate_workflow(workflow):
     failures.append('GitHub Actions workflow must %s' % requirement)
 
 makefile = read(MAKEFILE) if os.path.isfile(MAKEFILE) else ''
+root_declaration = 'override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))'
+root_assignments = [
+    line for line in makefile.splitlines()
+    if re.match(r'^(?:override\s+)?ROOT\s*[:?+]?=', line)
+]
+if not makefile.startswith(root_declaration + '\n') or root_assignments != [root_declaration]:
+    failures.append('Makefile must define exactly one protected repository-derived ROOT declaration first')
 required_makefile_phrases = (
-    'ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))',
+    root_declaration,
     'PYTHON ?= python2',
     '$(PYTHON) -B "$(ROOT)/scripts/check-docs-plans.py"',
     '$(PYTHON) -B "$(ROOT)/scripts/test_workflow_contract.py"',
@@ -92,7 +102,20 @@ for phrase in required_makefile_phrases:
 if 'command -v $(PYTHON)' in makefile or 'unavailable; skipping legacy Python 2 tests' in makefile:
     failures.append('Makefile must require Python 2 scraper verification instead of skipping it')
 
+if os.path.isfile(MAKE_ROOT_PLAN):
+    make_root_plan = read(MAKE_ROOT_PLAN)
+    for evidence in (
+            'Status: Completed',
+            '`make ROOT=/tmp check` passed',
+            'all six public Make aliases passed',
+            'Six hostile mutations were rejected',
+            'digest-pinned Python 2.7.18'):
+        if evidence not in make_root_plan:
+            failures.append('%s must record verification evidence %s' % (rel(MAKE_ROOT_PLAN), evidence))
+
 readme = read(os.path.join(ROOT, 'README.md'))
+if rel(MAKE_ROOT_PLAN) not in readme:
+    failures.append('README.md must reference %s' % rel(MAKE_ROOT_PLAN))
 vision = read(os.path.join(ROOT, 'VISION.md'))
 changes = read(os.path.join(ROOT, 'CHANGES.md'))
 scrape_source = read(os.path.join(ROOT, 'scrape.py'))

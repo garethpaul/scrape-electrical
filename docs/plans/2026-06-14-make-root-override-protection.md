@@ -1,6 +1,6 @@
 # Make Root Override Protection
 
-## Status: Planned
+## Status: Completed
 
 ## Context
 
@@ -51,3 +51,26 @@ digest-pinned Python 2 image, hostile mutations, and integrity screening.
 - root-declaration, checker, plan-status, README-index, and evidence mutations
 - Python syntax, workflow contract, protected-file, secret, artifact, and
   `git diff --check` gates
+
+## Work Completed
+
+- Protected the Makefile-derived repository root from command-line and
+  environment overrides while preserving configurable Python selection.
+- Added Python 2-compatible exact declaration, completed-evidence, and README
+  index contracts.
+- Preserved scraper, database, redirect, response, workflow, and bytecode-free
+  behavior boundaries.
+
+## Verification Results
+
+- `python2 -B scripts/check-docs-plans.py` passed.
+- From both the checkout and an external directory, all six public Make aliases passed.
+- `make ROOT=/tmp check` passed externally while still executing repository-owned
+  documentation, workflow, syntax, and offline behavior gates.
+- The digest-pinned Python 2.7.18 hosted image passed `make check` with
+  networking disabled and the source mounted read-only.
+- Six hostile mutations were rejected across root declaration, checker
+  expectation, plan status, README indexing, and recorded evidence.
+- Python syntax, workflow contract, exact-base protected-file comparison,
+  secret screening, bytecode/generated-artifact screening, and
+  `git diff --check` passed before shipping.
