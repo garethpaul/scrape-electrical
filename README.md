@@ -174,6 +174,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   response memory contract.
 - See `docs/plans/2026-06-12-same-host-redirect-boundary.md` for pre-request
   redirect target validation and its explicit DNS-rebinding limitation.
+- See `docs/plans/2026-06-14-make-root-override-protection.md` for the
+  caller-resistant, location-independent offline verification root.
 
 ## Contributing
 
