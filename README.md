@@ -152,6 +152,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   handling.
 - See `docs/plans/2026-06-09-product-link-scheme-guard.md` for product-link
   scheme validation and relative-link normalization.
+- See `docs/plans/2026-06-14-product-link-userinfo-guard.md` for rejecting
+  credential-bearing product links parsed from remote markup.
 - See `docs/plans/2026-06-09-structured-db-connect.md` for structured
   database connection parameters.
 - See `docs/plans/2026-06-09-database-close-order.md` for cursor-first
