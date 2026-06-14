@@ -593,6 +593,23 @@ class ProductParserTests(unittest.TestCase):
             database.inserts,
         )
 
+    def test_find_products_skips_credential_bearing_links(self):
+        database = FakeProductDatabase()
+        product = scrape.Product(database, 'https://example.test/source')
+        page = FakePage([
+            FakeProductNode('Username', 'https://operator@example.test/item', '$1.00'),
+            FakeProductNode('Password', 'https://:secret@example.test/item', '$2.00'),
+            FakeProductNode('Encoded', 'https://user%40name:pass%2Fword@example.test/item', '$3.00'),
+            FakeProductNode('Valid item', 'https://example.test/item', '$4.00'),
+        ])
+
+        product.find_products(page)
+
+        self.assertEqual(
+            [('Valid item', 'https://example.test/item', '$4.00')],
+            database.inserts,
+        )
+
     def test_find_products_normalizes_relative_links(self):
         database = FakeProductDatabase()
         product = scrape.Product(database, 'https://example.test/source/list')

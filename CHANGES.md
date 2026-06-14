@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Rejected product link credentials parsed from remote markup before database
+  writes or dry-run output while continuing to process safe products.
 - Rejected source URL credentials before initial request construction, with
   non-disclosing Python 2 regression coverage.
 - Added an explicit redirect hop limit of five total redirects and two repeats

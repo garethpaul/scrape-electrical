@@ -230,6 +230,8 @@ class Product(object):
         parsed_url = urlparse(link_url)
         if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
             return None
+        if parsed_url.username is not None or parsed_url.password is not None:
+            return None
 
         return link_url
 

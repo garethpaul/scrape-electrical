@@ -26,6 +26,7 @@ Priority:
 - Keep an explicit redirect hop limit on same-host chains and loops
 - Skip incomplete product cards instead of aborting the scrape
 - Resolve product links against the source URL and reject non-web schemes
+- Reject product link credentials parsed from remote markup before persistence
 - Pass database connection fields as structured driver parameters
 - Require a dry-run or complete database credentials for command-line runs
 - Keep database cursor cleanup ordered before connection teardown

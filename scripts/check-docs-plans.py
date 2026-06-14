@@ -22,6 +22,7 @@ REDIRECT_BOUNDARY_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-same-host-redirect
 REDIRECT_HOP_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-redirect-hop-limit.md')
 SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-guard.md')
 MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protection.md')
+PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-userinfo-guard.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -49,6 +50,7 @@ for required_path in (
         REDIRECT_HOP_LIMIT_PLAN,
         SOURCE_USERINFO_PLAN,
         MAKE_ROOT_PLAN,
+        PRODUCT_LINK_USERINFO_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -137,6 +139,8 @@ if "parsed_url.scheme not in ('http', 'https')" not in scrape_source:
     failures.append('scrape.py must reject parsed product links that are not HTTP(S)')
 if 'urljoin(self.url, href.strip())' not in scrape_source:
     failures.append('scrape.py must resolve relative product links against the source URL')
+if scrape_source.count('parsed_url.username is not None or parsed_url.password is not None') < 2:
+    failures.append('scrape.py must reject credentials in source and product links')
 if 'import argparse' not in scrape_source:
     failures.append('scrape.py must expose a Python 2 argparse CLI')
 if 'class DryRunDatabase(object):' not in scrape_source:
@@ -210,6 +214,8 @@ for test_name in (
         failures.append('tests/test_scrape.py must retain %s' % test_name)
 if 'test_product_rejects_source_url_credentials_without_echoing_them' not in test_source:
     failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
+if 'test_find_products_skips_credential_bearing_links' not in test_source:
+    failures.append('tests/test_scrape.py must retain product link credential rejection coverage')
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -246,8 +252,23 @@ if ('source URL credentials' not in readme or
         'source URL credentials' not in security or
         'source URL credentials' not in changes):
     failures.append('docs must describe the source URL credential boundary')
-if 'all 30' not in readme:
-    failures.append('README.md must record the complete 30-test offline suite')
+if ('product link credentials' not in readme or
+        'product link credentials' not in vision or
+        'product link credentials' not in security or
+        'product link credentials' not in changes):
+    failures.append('docs must describe the product link credential boundary')
+if 'all 31' not in readme:
+    failures.append('README.md must record the complete 31-test offline suite')
+
+product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        'repository and external-directory `make check` passed',
+        'hostile product-link userinfo mutations were rejected',
+        'generated-artifact and credential-pattern audits passed'):
+    if evidence not in product_link_userinfo_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(PRODUCT_LINK_USERINFO_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:
