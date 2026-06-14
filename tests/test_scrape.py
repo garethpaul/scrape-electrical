@@ -610,6 +610,22 @@ class ProductParserTests(unittest.TestCase):
             database.inserts,
         )
 
+    def test_find_products_skips_malformed_links_and_continues(self):
+        database = FakeProductDatabase()
+        product = scrape.Product(database, 'https://example.test/source')
+        page = FakePage([
+            FakeProductNode('Invalid IPv6', 'https://[invalid/item', '$1.00'),
+            FakeProductNode('Invalid port', 'https://example.test:not-a-port/item', '$2.00'),
+            FakeProductNode('Valid item', '/item/123', '$3.00'),
+        ])
+
+        product.find_products(page)
+
+        self.assertEqual(
+            [('Valid item', 'https://example.test/item/123', '$3.00')],
+            database.inserts,
+        )
+
     def test_find_products_normalizes_relative_links(self):
         database = FakeProductDatabase()
         product = scrape.Product(database, 'https://example.test/source/list')

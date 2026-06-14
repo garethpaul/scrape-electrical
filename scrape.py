@@ -226,9 +226,16 @@ class Product(object):
         if not href or not href.strip():
             return None
 
-        link_url = urljoin(self.url, href.strip())
-        parsed_url = urlparse(link_url)
-        if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
+        try:
+            link_url = urljoin(self.url, href.strip())
+            parsed_url = urlparse(link_url)
+            # These properties reject malformed IPv6 hosts and port values.
+            link_host = parsed_url.hostname
+            parsed_url.port
+        except ValueError:
+            return None
+        if (parsed_url.scheme not in ('http', 'https') or
+                not parsed_url.netloc or link_host is None):
             return None
         if parsed_url.username is not None or parsed_url.password is not None:
             return None

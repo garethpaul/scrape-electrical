@@ -92,7 +92,8 @@ python2 scrape.py --url https://example.test/products \
 - Product cards without usable links are skipped rather than aborting the
   scrape.
 - Parsed product links are resolved against the source URL, must use `http` or
-  `https`, and must not contain product link credentials before insertion.
+  `https`, must not contain product link credentials, and malformed product
+  links are skipped before insertion without stopping later safe rows.
 - Database connection fields are passed to `psycopg2` as structured keyword
   arguments instead of an interpolated connection string.
 
@@ -101,15 +102,16 @@ python2 scrape.py --url https://example.test/products \
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
 - `make check` requires Python 2 and runs the documentation, workflow-policy,
-  syntax, and all 31
+  syntax, and all 32
   mocked database and parser tests without successful skip paths.
 - GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
   container with credential-free pinned checkout, read-only permissions, and
   no live scraper/database packages.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
-- Parser tests also cover non-web and credential-bearing product-link rejection
-  plus relative product-link normalization.
+- Parser tests also cover non-web, credential-bearing, and malformed product
+  links plus relative product-link normalization and continuation after
+  rejected rows.
 - Parser tests also cover source page URL scheme validation and whitespace
   normalization.
 - Network tests require HTTP responses to close after successful and failed

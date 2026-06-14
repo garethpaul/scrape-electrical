@@ -23,6 +23,7 @@ REDIRECT_HOP_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-redirect-hop-limi
 SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-guard.md')
 MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protection.md')
 PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-userinfo-guard.md')
+MALFORMED_PRODUCT_LINK_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-malformed-product-link-boundary.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -51,6 +52,7 @@ for required_path in (
         SOURCE_USERINFO_PLAN,
         MAKE_ROOT_PLAN,
         PRODUCT_LINK_USERINFO_PLAN,
+        MALFORMED_PRODUCT_LINK_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -139,6 +141,13 @@ if "parsed_url.scheme not in ('http', 'https')" not in scrape_source:
     failures.append('scrape.py must reject parsed product links that are not HTTP(S)')
 if 'urljoin(self.url, href.strip())' not in scrape_source:
     failures.append('scrape.py must resolve relative product links against the source URL')
+for phrase in (
+        'link_host = parsed_url.hostname',
+        'parsed_url.port',
+        'except ValueError:\n            return None',
+        'not parsed_url.netloc or link_host is None'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must reject malformed product link authorities via %r' % phrase)
 if scrape_source.count('parsed_url.username is not None or parsed_url.password is not None') < 2:
     failures.append('scrape.py must reject credentials in source and product links')
 if 'import argparse' not in scrape_source:
@@ -216,6 +225,8 @@ if 'test_product_rejects_source_url_credentials_without_echoing_them' not in tes
     failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
 if 'test_find_products_skips_credential_bearing_links' not in test_source:
     failures.append('tests/test_scrape.py must retain product link credential rejection coverage')
+if 'test_find_products_skips_malformed_links_and_continues' not in test_source:
+    failures.append('tests/test_scrape.py must retain malformed product link continuation coverage')
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -257,8 +268,11 @@ if ('product link credentials' not in readme or
         'product link credentials' not in security or
         'product link credentials' not in changes):
     failures.append('docs must describe the product link credential boundary')
-if 'all 31' not in readme:
-    failures.append('README.md must record the complete 31-test offline suite')
+if any(re.search(r'malformed\s+product\s+links', document) is None
+       for document in (readme, vision, security, changes)):
+    failures.append('docs must describe the malformed product link boundary')
+if 'all 32' not in readme:
+    failures.append('README.md must record the complete 32-test offline suite')
 
 product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
 for evidence in (
@@ -269,6 +283,16 @@ for evidence in (
     if evidence not in product_link_userinfo_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(PRODUCT_LINK_USERINFO_PLAN), evidence))
+
+malformed_product_link_plan = read(MALFORMED_PRODUCT_LINK_PLAN) if os.path.isfile(MALFORMED_PRODUCT_LINK_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        'repository and external-directory `make check` passed',
+        'hostile malformed-link mutations were rejected',
+        'generated-artifact and credential-pattern audits passed'):
+    if evidence not in malformed_product_link_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(MALFORMED_PRODUCT_LINK_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

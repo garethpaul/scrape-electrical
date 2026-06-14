@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-14
+
+- Rejected malformed product links at the row boundary while continuing to
+  process later safe products.
+
 ## 2026-06-13
 
 - Rejected product link credentials parsed from remote markup before database

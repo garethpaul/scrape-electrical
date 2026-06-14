@@ -40,6 +40,8 @@ against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
 Remote product link credentials are rejected before database writes or dry-run
 output.
+Remote malformed product links are rejected at the row boundary without being
+logged and without stopping later safe product rows.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
 The scraper rejects source URL credentials before request construction so

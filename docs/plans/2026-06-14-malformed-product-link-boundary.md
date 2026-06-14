@@ -1,6 +1,6 @@
 # Malformed Product Link Boundary
 
-## Status: Planned
+## Status: Completed
 
 ## Context
 
@@ -43,6 +43,19 @@ at the row boundary without interrupting the rest of an offline or live scrape.
 - digest-pinned, network-disabled Python 2.7.18 container `make check`
 - hostile guard, test, documentation, suite-count, and plan-status mutations
 - Python bytecode, generated-artifact, credential-pattern, and exact-diff audits
+
+## Verification Results
+
+- The focused Python 2 regression passed and confirmed malformed IPv6 and port
+  authorities are skipped while a following safe product is still inserted.
+- The repository and external-directory `make check` passed with all 32
+  dependency-free tests and all 17 workflow-policy mutations.
+- The reviewed digest-pinned Python 2.7.18 container passed `make check` with a
+  read-only checkout and networking disabled.
+- Six hostile malformed-link mutations were rejected across exception-boundary,
+  port-validation, test, documentation, suite-count, and completed-plan drift.
+- Final Python bytecode, generated-artifact and credential-pattern audits passed
+  with only the intended parser, test, checker, documentation, and plan changes.
 
 ## Risks
 
