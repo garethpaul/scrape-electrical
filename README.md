@@ -77,6 +77,7 @@ python2 scrape.py --url https://example.test/products \
   tracking headers.
 - Live fetches use a bounded default timeout so stalled requests do not hang
   forever.
+- Scraper timeouts must be finite positive numbers before network setup.
 - Live fetches also enforce a 5 MiB response body size limit before HTML
   parsing; override it with `--max-response-bytes` for a reviewed target.
 - Source page URLs must use `http` or `https` and include a host before the
@@ -103,7 +104,7 @@ python2 scrape.py --url https://example.test/products \
 - `make check` runs Python 2 syntax checks plus mocked database and parser
   unit tests.
 - `make check` requires Python 2 and runs the documentation, workflow-policy,
-  syntax, and all 33
+  syntax, and all 34
   mocked database and parser tests without successful skip paths.
 - GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
   container with credential-free pinned checkout, read-only permissions, and

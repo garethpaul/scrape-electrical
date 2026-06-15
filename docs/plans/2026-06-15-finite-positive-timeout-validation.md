@@ -1,6 +1,6 @@
 # Finite Positive Timeout Validation
 
-Status: Planned
+Status: Completed
 
 ## Problem
 
@@ -56,16 +56,17 @@ Files:
 Record that scraper timeouts must be finite positive numbers before network
 setup.
 
-## Verification Plan
+## Verification Completed
 
-- Run the focused timeout tests before implementation and confirm hostile
-  values expose the current gap.
-- Run Python 2 `make check` from the repository and an external directory with
-  explicit timeouts.
-- Reject isolated mutations for type, boolean, positivity, finiteness, tests,
-  documentation, and completed-plan evidence.
-- Audit the exact diff, bytecode, generated artifacts, changed-line secrets,
-  and intended paths before commit.
+- The focused constructor probe showed that Python 2 accepted `True`, `"1"`,
+  `NaN`, and positive infinity before the fix; all hostile values are rejected
+  afterward while positive finite integers, longs, and floats remain valid.
+- Eight hostile timeout mutations were rejected across boolean, numeric type,
+  positivity, `NaN`, infinity, fixture, guidance, and completed-plan contracts.
+- repository and external-directory `make check` passed with all 34 Python 2
+  database, CLI, network, redirect, response, and parser tests.
+- hostile timeout mutations were rejected.
+- generated-artifact and credential-pattern audits passed.
 
 ## Scope Boundaries
 

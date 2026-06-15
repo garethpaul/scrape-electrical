@@ -481,8 +481,20 @@ class ProductParserTests(unittest.TestCase):
 
         self.assertTrue(response.closed)
 
-    def test_product_rejects_non_positive_timeout(self):
-        self.assertRaises(ValueError, scrape.Product, None, 'https://example.test/source', timeout=0)
+    def test_product_accepts_positive_finite_timeout(self):
+        for value in [1, 0.5, 30L]:
+            product = scrape.Product(None, 'https://example.test/source', timeout=value)
+            self.assertEqual(value, product.timeout)
+
+    def test_product_rejects_invalid_timeout_values(self):
+        for value in [True, '1', None, 0, -1, float('nan'), float('inf'), float('-inf')]:
+            self.assertRaises(
+                ValueError,
+                scrape.Product,
+                None,
+                'https://example.test/source',
+                timeout=value,
+            )
 
     def test_product_rejects_non_positive_response_limit(self):
         self.assertRaises(

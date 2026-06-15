@@ -44,6 +44,7 @@ Remote malformed product links are rejected at the row boundary without being
 logged and without stopping later safe product rows.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
+Scraper timeouts must be finite positive numbers before network setup.
 Malformed source URL authorities, including invalid explicit ports, are
 rejected before opener construction without echoing the supplied URL.
 The scraper rejects source URL credentials before request construction so

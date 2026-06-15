@@ -2,6 +2,7 @@
 
 ## 2026-06-15
 
+- Scraper timeouts must be finite positive numbers before network setup.
 - Rejected malformed source URL authorities before opener construction without
   disclosing the supplied URL.
 

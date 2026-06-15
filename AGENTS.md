@@ -48,6 +48,7 @@
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-08-scrape-electrical-baseline.md` for the canonical scraper/database safety baseline.
 - See `docs/plans/2026-06-08-network-timeout.md` for the network timeout guard.
+- Scraper timeouts must be finite positive numbers before network setup.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link handling.
 - Hosted checks must run the complete offline Python 2 suite in the reviewed
   digest-pinned container with credential-free checkout, read-only

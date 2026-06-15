@@ -25,6 +25,7 @@ MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protect
 PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-userinfo-guard.md')
 MALFORMED_PRODUCT_LINK_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-malformed-product-link-boundary.md')
 MALFORMED_SOURCE_URL_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-malformed-source-url-boundary.md')
+TIMEOUT_VALIDATION_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-finite-positive-timeout-validation.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -55,6 +56,7 @@ for required_path in (
         PRODUCT_LINK_USERINFO_PLAN,
         MALFORMED_PRODUCT_LINK_PLAN,
         MALFORMED_SOURCE_URL_PLAN,
+        TIMEOUT_VALIDATION_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -213,6 +215,14 @@ for phrase in (
 if ('parsed_url.username is not None or parsed_url.password is not None' not in scrape_source or
         "raise ValueError('source URL must not include credentials')" not in scrape_source):
     failures.append('scrape.py must reject source URL credentials before network reads')
+for phrase in (
+        'isinstance(timeout, bool)',
+        'not isinstance(timeout, (int, long, float))',
+        'timeout <= 0 or timeout != timeout',
+        "timeout == float('inf')",
+        "raise ValueError('timeout must be positive')"):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain finite positive timeout validation %r' % phrase)
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
 for test_name in (
@@ -234,6 +244,14 @@ if 'test_product_rejects_source_url_credentials_without_echoing_them' not in tes
     failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
 if 'test_product_rejects_malformed_source_authorities_without_echoing_them' not in test_source:
     failures.append('tests/test_scrape.py must retain malformed source URL authority coverage')
+for timeout_test in (
+        'test_product_accepts_positive_finite_timeout',
+        'test_product_rejects_invalid_timeout_values',
+        "float('nan')",
+        "float('inf')",
+        "float('-inf')"):
+    if timeout_test not in test_source:
+        failures.append('tests/test_scrape.py must retain timeout fixture %r' % timeout_test)
 if 'test_find_products_skips_credential_bearing_links' not in test_source:
     failures.append('tests/test_scrape.py must retain product link credential rejection coverage')
 if 'test_find_products_skips_malformed_links_and_continues' not in test_source:
@@ -285,8 +303,11 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 33' not in readme:
-    failures.append('README.md must record the complete 33-test offline suite')
+if 'all 34' not in readme:
+    failures.append('README.md must record the complete 34-test offline suite')
+if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
+       for document in (readme, vision, security, changes)):
+    failures.append('docs must describe the finite positive timeout boundary')
 
 product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
 for evidence in (
@@ -317,6 +338,16 @@ for evidence in (
     if evidence not in malformed_source_url_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(MALFORMED_SOURCE_URL_PLAN), evidence))
+
+timeout_validation_plan = read(TIMEOUT_VALIDATION_PLAN) if os.path.isfile(TIMEOUT_VALIDATION_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        'repository and external-directory `make check` passed',
+        'hostile timeout mutations were rejected',
+        'generated-artifact and credential-pattern audits passed'):
+    if evidence not in timeout_validation_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(TIMEOUT_VALIDATION_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

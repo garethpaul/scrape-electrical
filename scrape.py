@@ -134,7 +134,10 @@ class Product(object):
         # Set variables for class product.
         self.database = database
         self.url = self.normalized_source_url(url)
-        if timeout <= 0:
+        if (isinstance(timeout, bool) or
+                not isinstance(timeout, (int, long, float)) or
+                timeout <= 0 or timeout != timeout or
+                timeout == float('inf')):
             raise ValueError('timeout must be positive')
         self.timeout = timeout
         if (isinstance(max_response_bytes, bool) or
