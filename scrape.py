@@ -3,8 +3,21 @@ from __future__ import print_function
 import argparse
 import re
 import sys
-import urllib2
-from urlparse import urljoin, urlparse
+
+try:
+    import urllib2
+    from urlparse import urljoin, urlparse
+except ImportError:
+    import urllib.error
+    import urllib.request as urllib2
+    from urllib.parse import urljoin, urlparse
+
+    urllib2.HTTPError = urllib.error.HTTPError
+
+try:
+    INTEGER_TYPES = (int, long)
+except NameError:
+    INTEGER_TYPES = (int,)
 
 
 DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
@@ -135,13 +148,13 @@ class Product(object):
         self.database = database
         self.url = self.normalized_source_url(url)
         if (isinstance(timeout, bool) or
-                not isinstance(timeout, (int, long, float)) or
+                not isinstance(timeout, INTEGER_TYPES + (float,)) or
                 timeout <= 0 or timeout != timeout or
                 timeout == float('inf')):
             raise ValueError('timeout must be positive')
         self.timeout = timeout
         if (isinstance(max_response_bytes, bool) or
-                not isinstance(max_response_bytes, (int, long)) or
+                not isinstance(max_response_bytes, INTEGER_TYPES) or
                 max_response_bytes <= 0):
             raise ValueError('maximum response size must be a positive integer')
         self.max_response_bytes = max_response_bytes

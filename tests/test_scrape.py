@@ -1,5 +1,8 @@
 import unittest
-import StringIO
+try:
+    import StringIO
+except ImportError:
+    import io as StringIO
 import sys
 import types
 
@@ -482,7 +485,7 @@ class ProductParserTests(unittest.TestCase):
         self.assertTrue(response.closed)
 
     def test_product_accepts_positive_finite_timeout(self):
-        for value in [1, 0.5, 30L]:
+        for value in [1, 0.5, 30]:
             product = scrape.Product(None, 'https://example.test/source', timeout=value)
             self.assertEqual(value, product.timeout)
 

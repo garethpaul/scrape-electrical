@@ -1,7 +1,7 @@
 ---
 title: Python 3 Offline Compatibility
 type: maintenance
-status: in_progress
+status: completed
 date: 2026-06-15
 execution: code
 ---
@@ -211,3 +211,18 @@ messages.
   separate boundary.
 - Adding a hosted lane increases runner use but provides the first authoritative
   current-runtime signal for every existing safety test.
+
+---
+
+## Completion Evidence
+
+Status: Completed
+
+- 34 tests passed under Python 2.7 and Python 3.12.
+- 21 workflow mutations were rejected under both runtimes.
+- The repository and external-directory `make check` passed under both runtimes.
+- Isolated hostile Python compatibility mutations were rejected by the static
+  and workflow contracts.
+- The generated-artifact and credential-pattern audits passed for the intended
+  diff.
+- No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.

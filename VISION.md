@@ -36,10 +36,10 @@ Priority:
 - Keep connection cleanup attempted when cursor cleanup fails
 - Keep completed maintenance plans under `docs/plans`
 - Keep verification runs from leaving Python bytecode in the checkout
-- Keep GitHub Actions running the complete offline Python 2 scraper suite with
-  credential-free checkout and no live dependency installation
+- Keep GitHub Actions running the complete offline scraper suite under Python 2.7 and Python 3.12 with credential-free checkout and no live dependency installation
 - Keep hosted workflow policy protected by dependency-free hostile mutations
-- Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
+- Treat Python 2-only deployment, raw SQL, and incomplete CLI wiring as legacy
+  risks
 
 Next priorities:
 

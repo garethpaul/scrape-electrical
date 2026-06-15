@@ -17,6 +17,8 @@
 
 - Install dependencies: `python3 -m pip install -r requirements.txt`
 - Full baseline: `make check`
+- Legacy runtime baseline: `make check PYTHON=python2`
+- Current runtime baseline: `make check PYTHON=python3`
 - Combined verification: `make verify`
 - Lint/static checks: `make lint`
 - Tests: `make test`
@@ -50,9 +52,9 @@
 - See `docs/plans/2026-06-08-network-timeout.md` for the network timeout guard.
 - Scraper timeouts must be finite positive numbers before network setup.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link handling.
-- Hosted checks must run the complete offline Python 2 suite in the reviewed
-  digest-pinned container with credential-free checkout, read-only
-  permissions, and no live dependency installation.
+- Hosted checks must run the complete offline suite under Python 2.7 and Python 3.12, using the reviewed digest-pinned legacy container and immutable setup
+  action with credential-free checkout, read-only permissions, and no live
+  dependency installation.
 - Run `make contract-test` after workflow changes. Duplicate, relocated, or
   contradictory credential settings and other policy drift must fail closed.
 

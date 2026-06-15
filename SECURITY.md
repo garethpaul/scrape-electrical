@@ -59,9 +59,10 @@ HTTP responses must close after body reads, including parser or transport
 failure paths, so repeated scraping does not leak network resources.
 The default 5 MiB response body size limit rejects oversized pages before HTML
 parsing while still closing the response; increases require explicit CLI input.
-GitHub Actions runs the complete offline gate in a digest-pinned Python 2.7.18
-container. It installs no live scraping or database dependencies and does not
-receive database credentials.
+GitHub Actions runs the complete offline gate under Python 2.7 and Python 3.12,
+using a digest-pinned legacy container and an immutable setup action. Neither
+lane installs live scraping or database dependencies or receives database
+credentials.
 CI checkout credentials stay disabled, actions remain pinned by commit, and
 permissions remain read-only. Hostile mutations reject contradictory
 credentials, dependency installation, and other workflow-policy drift.

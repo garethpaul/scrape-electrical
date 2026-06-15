@@ -26,6 +26,7 @@ PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-u
 MALFORMED_PRODUCT_LINK_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-malformed-product-link-boundary.md')
 MALFORMED_SOURCE_URL_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-malformed-source-url-boundary.md')
 TIMEOUT_VALIDATION_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-finite-positive-timeout-validation.md')
+PYTHON3_COMPATIBILITY_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-python3-compatibility.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -57,6 +58,7 @@ for required_path in (
         MALFORMED_PRODUCT_LINK_PLAN,
         MALFORMED_SOURCE_URL_PLAN,
         TIMEOUT_VALIDATION_PLAN,
+        PYTHON3_COMPATIBILITY_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -131,8 +133,18 @@ if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
     failures.append('scrape.py must not build a psycopg2 connection string by interpolation')
 if 'psycopg2.connect(\n            user=self.dbuser,' not in scrape_source:
     failures.append('scrape.py must pass database connection fields as psycopg2 keyword arguments')
-if 'from urlparse import urljoin, urlparse' not in scrape_source:
-    failures.append('scrape.py must import Python 2 URL normalization helpers')
+for phrase in (
+        'try:\n    import urllib2',
+        'from urlparse import urljoin, urlparse',
+        'except ImportError:',
+        'import urllib.error',
+        'import urllib.request as urllib2',
+        'from urllib.parse import urljoin, urlparse',
+        'urllib2.HTTPError = urllib.error.HTTPError',
+        'try:\n    INTEGER_TYPES = (int, long)',
+        'except NameError:\n    INTEGER_TYPES = (int,)'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain dual-runtime compatibility fragment %r' % phrase)
 if 'def normalized_link(self, href):' not in scrape_source:
     failures.append('scrape.py must normalize parsed product links before database insertion')
 if 'self.url = self.normalized_source_url(url)' not in scrape_source:
@@ -172,7 +184,7 @@ for phrase in (
         'DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024',
         'max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES',
         'isinstance(max_response_bytes, bool) or',
-        'not isinstance(max_response_bytes, (int, long)) or',
+        'not isinstance(max_response_bytes, INTEGER_TYPES) or',
         'response.read(self.max_response_bytes + 1)',
         'if len(body) > self.max_response_bytes:',
         "'--max-response-bytes'",
@@ -217,7 +229,7 @@ if ('parsed_url.username is not None or parsed_url.password is not None' not in 
     failures.append('scrape.py must reject source URL credentials before network reads')
 for phrase in (
         'isinstance(timeout, bool)',
-        'not isinstance(timeout, (int, long, float))',
+        'not isinstance(timeout, INTEGER_TYPES + (float,))',
         'timeout <= 0 or timeout != timeout',
         "timeout == float('inf')",
         "raise ValueError('timeout must be positive')"):
@@ -225,6 +237,13 @@ for phrase in (
         failures.append('scrape.py must retain finite positive timeout validation %r' % phrase)
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
+for phrase in (
+        'try:\n    import StringIO',
+        'except ImportError:\n    import io as StringIO'):
+    if phrase not in test_source:
+        failures.append('tests/test_scrape.py must retain dual-runtime buffer fragment %r' % phrase)
+if re.search(r'\b\d+[lL]\b', test_source):
+    failures.append('tests/test_scrape.py must not contain Python-2-only long integer literals')
 for test_name in (
         'test_read_accepts_body_at_configured_limit',
         'test_read_rejects_and_closes_oversized_body',
@@ -308,6 +327,17 @@ if 'all 34' not in readme:
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
+for document_name, document in (
+        ('README.md', readme),
+        ('SECURITY.md', security),
+        ('VISION.md', vision),
+        ('CHANGES.md', changes)):
+    if 'Python 2.7 and Python 3.12' not in document:
+        failures.append('%s must document the Python 2.7 and Python 3.12 verification boundary' % document_name)
+
+agents = read(os.path.join(ROOT, 'AGENTS.md'))
+if 'Python 2.7 and Python 3.12' not in agents or 'make check PYTHON=python3' not in agents:
+    failures.append('AGENTS.md must document both runtime gates')
 
 product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
 for evidence in (
@@ -348,6 +378,19 @@ for evidence in (
     if evidence not in timeout_validation_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(TIMEOUT_VALIDATION_PLAN), evidence))
+
+python3_compatibility_plan = read(PYTHON3_COMPATIBILITY_PLAN) if os.path.isfile(PYTHON3_COMPATIBILITY_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        '34 tests passed under Python 2.7 and Python 3.12',
+        '21 workflow mutations were rejected under both runtimes',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile Python compatibility mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in python3_compatibility_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(PYTHON3_COMPATIBILITY_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

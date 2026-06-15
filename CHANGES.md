@@ -2,6 +2,8 @@
 
 ## 2026-06-15
 
+- Added dependency-free offline compatibility for Python 2.7 and Python 3.12,
+  with matching local and hosted verification lanes.
 - Scraper timeouts must be finite positive numbers before network setup.
 - Rejected malformed source URL authorities before opener construction without
   disclosing the supplied URL.

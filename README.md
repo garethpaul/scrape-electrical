@@ -19,7 +19,7 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `requirements.txt` - optional scraper/database dependencies
 - `scripts` - documentation-plan validators
 - `scrape.py` - scraper and PostgreSQL insert implementation
-- `tests` - Python 2 parser and database unit tests
+- `tests` - Python 2 and Python 3 parser and database unit tests
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
 
@@ -35,7 +35,7 @@ Additional scan context:
 ### Prerequisites
 
 - Git
-- Python 2.7
+- Python 2.7 or Python 3.12 for offline verification
 - PostgreSQL client access for live database writes
 
 ### Setup
@@ -43,7 +43,7 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/scrape-electrical.git
 cd scrape-electrical
-python2 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
@@ -53,13 +53,13 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Preview parsed rows without PostgreSQL writes:
 
 ```bash
-python2 scrape.py --url https://example.test/products --dry-run
+python3 scrape.py --url https://example.test/products --dry-run
 ```
 
 - For live writes, pass all database fields explicitly:
 
 ```bash
-python2 scrape.py --url https://example.test/products \
+python3 scrape.py --url https://example.test/products \
   --db-name products_db \
   --db-user scraper \
   --db-password "$SCRAPE_DB_PASSWORD" \
@@ -90,7 +90,7 @@ python2 scrape.py --url https://example.test/products \
   alternate-port, downgrade, and credential-bearing targets are rejected before
   the follow-up request.
 - The redirect hop limit permits at most five total redirects and two repeats
-  of the same target before Python 2 aborts the request chain.
+  of the same target before the runtime aborts the request chain.
 - Product cards without usable links are skipped rather than aborting the
   scrape.
 - Parsed product links are resolved against the source URL, must use `http` or
@@ -101,14 +101,13 @@ python2 scrape.py --url https://example.test/products \
 
 ## Testing and Verification
 
-- `make check` runs Python 2 syntax checks plus mocked database and parser
-  unit tests.
-- `make check` requires Python 2 and runs the documentation, workflow-policy,
-  syntax, and all 34
-  mocked database and parser tests without successful skip paths.
-- GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
-  container with credential-free pinned checkout, read-only permissions, and
-  no live scraper/database packages.
+- `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
+  plus all 34 mocked database and parser tests under Python 2.7 and Python 3.12.
+- Both gates run documentation and workflow-policy checks without successful
+  skip paths or live scraper/database dependencies.
+- GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
+  container and an Ubuntu Python 3.12 lane, with credential-free pinned
+  checkout and read-only permissions.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
 - Parser tests also cover non-web, credential-bearing, and malformed product
@@ -182,6 +181,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   redirect target validation and its explicit DNS-rebinding limitation.
 - See `docs/plans/2026-06-14-make-root-override-protection.md` for the
   caller-resistant, location-independent offline verification root.
+- See `docs/plans/2026-06-15-python3-compatibility.md` for the Python 2.7 and
+  Python 3.12 offline compatibility boundary.
 
 ## Contributing
 
