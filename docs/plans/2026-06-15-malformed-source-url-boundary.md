@@ -1,6 +1,6 @@
 # Malformed Source URL Boundary
 
-## Status: In Progress
+## Status: Completed
 
 ## Context
 
@@ -49,3 +49,23 @@ source URLs.
   mutations
 - Python bytecode, generated-artifact, credential-pattern, and exact-diff audits
 
+## Verification Results
+
+- The focused Python 2 regression passed for nonnumeric, empty, out-of-range,
+  malformed IPv6, and valid explicit source ports.
+- The repository and external-directory `make check` passed with all 33 offline
+  scraper tests and all 17 workflow-policy mutations.
+- The digest-pinned, network-disabled Python 2.7.18 container passed the full
+  read-only `make check` gate.
+- Seven hostile malformed-source mutations were rejected across source-port
+  parsing, explicit-port detection, empty-host validation, regression coverage,
+  documentation, suite count, and completed-plan evidence.
+- Final Python bytecode, generated-artifact and credential-pattern audits passed
+  with only the intended parser, test, checker, documentation, and plan changes.
+
+## Remaining Risks
+
+- Python 2.7 remains end-of-life and its URL parser is the authoritative runtime
+  for this constrained legacy scraper.
+- Validation remains offline and does not exercise production source pages,
+  DNS behavior, PostgreSQL, or live redirects.

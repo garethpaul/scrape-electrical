@@ -515,6 +515,32 @@ class ProductParserTests(unittest.TestCase):
         ]:
             self.assertRaises(ValueError, scrape.Product, None, source_url)
 
+    def test_product_rejects_malformed_source_authorities_without_echoing_them(self):
+        for source_url in [
+            'http://example.test:not-a-port/source',
+            'http://example.test:/source',
+            'http://example.test:65536/source',
+            'http://[invalid-ipv6/source',
+            'http://::1/source',
+        ]:
+            try:
+                scrape.Product(None, source_url)
+            except ValueError as error:
+                self.assertEqual(
+                    'source URL must use http or https and include a host',
+                    str(error),
+                )
+                self.assertNotIn(source_url, str(error))
+            else:
+                self.fail('expected malformed source authority rejection')
+
+        for source_url in [
+            'https://example.test:8443/source',
+            'http://[::1]:8080/source',
+        ]:
+            product = scrape.Product(None, source_url)
+            self.assertEqual(source_url, product.url)
+
     def test_product_strips_source_url_whitespace(self):
         product = scrape.Product(None, ' https://example.test/source ')
 

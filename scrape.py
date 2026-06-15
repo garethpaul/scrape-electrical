@@ -151,10 +151,15 @@ class Product(object):
         try:
             parsed_url = urlparse(source_url)
             source_host = parsed_url.hostname
+            source_port = parsed_url.port
         except ValueError:
             raise ValueError('source URL must use http or https and include a host')
+        source_authority = parsed_url.netloc.rsplit('@', 1)[-1]
+        explicit_port = re.search(r'(?:\]|[^:]):([^:]*)$', source_authority)
+        if explicit_port is not None and source_port is None:
+            raise ValueError('source URL must use http or https and include a host')
         if (parsed_url.scheme not in ('http', 'https') or
-                not parsed_url.netloc or source_host is None):
+                not parsed_url.netloc or not source_host):
             raise ValueError('source URL must use http or https and include a host')
         if parsed_url.username is not None or parsed_url.password is not None:
             raise ValueError('source URL must not include credentials')

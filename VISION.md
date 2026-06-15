@@ -21,6 +21,7 @@ Priority:
 - Keep a configurable response body size limit ahead of HTML parsing
 - Close source-page responses on successful and failed body reads
 - Require source page URLs to use HTTP(S) before network reads
+- Reject malformed source URL authorities before opener construction
 - Reject source URL credentials before request construction
 - Keep a same-host redirect boundary ahead of follow-up network requests
 - Keep an explicit redirect hop limit on same-host chains and loops

@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-15
+
+- Rejected malformed source URL authorities before opener construction without
+  disclosing the supplied URL.
+
 ## 2026-06-14
 
 - Rejected malformed product links at the row boundary while continuing to

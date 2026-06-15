@@ -24,6 +24,7 @@ SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-
 MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protection.md')
 PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-userinfo-guard.md')
 MALFORMED_PRODUCT_LINK_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-malformed-product-link-boundary.md')
+MALFORMED_SOURCE_URL_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-malformed-source-url-boundary.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -53,6 +54,7 @@ for required_path in (
         MAKE_ROOT_PLAN,
         PRODUCT_LINK_USERINFO_PLAN,
         MALFORMED_PRODUCT_LINK_PLAN,
+        MALFORMED_SOURCE_URL_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -199,8 +201,15 @@ for phrase in (
         'urllib2.build_opener(SameHostRedirectHandler(self.url))'):
     if phrase not in scrape_source:
         failures.append('scrape.py must retain same-host redirect fragment %r' % phrase)
-if 'source_host = parsed_url.hostname' not in scrape_source or 'source_host is None' not in scrape_source:
+if 'source_host = parsed_url.hostname' not in scrape_source or 'not source_host' not in scrape_source:
     failures.append('scrape.py must require a parsed source hostname before network reads')
+for phrase in (
+        'source_port = parsed_url.port',
+        "source_authority = parsed_url.netloc.rsplit('@', 1)[-1]",
+        "explicit_port = re.search(r'(?:\\]|[^:]):([^:]*)$', source_authority)",
+        'if explicit_port is not None and source_port is None:'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must reject malformed source URL authorities via %r' % phrase)
 if ('parsed_url.username is not None or parsed_url.password is not None' not in scrape_source or
         "raise ValueError('source URL must not include credentials')" not in scrape_source):
     failures.append('scrape.py must reject source URL credentials before network reads')
@@ -223,6 +232,8 @@ for test_name in (
         failures.append('tests/test_scrape.py must retain %s' % test_name)
 if 'test_product_rejects_source_url_credentials_without_echoing_them' not in test_source:
     failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
+if 'test_product_rejects_malformed_source_authorities_without_echoing_them' not in test_source:
+    failures.append('tests/test_scrape.py must retain malformed source URL authority coverage')
 if 'test_find_products_skips_credential_bearing_links' not in test_source:
     failures.append('tests/test_scrape.py must retain product link credential rejection coverage')
 if 'test_find_products_skips_malformed_links_and_continues' not in test_source:
@@ -271,8 +282,11 @@ if ('product link credentials' not in readme or
 if any(re.search(r'malformed\s+product\s+links', document) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed product link boundary')
-if 'all 32' not in readme:
-    failures.append('README.md must record the complete 32-test offline suite')
+if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
+       for document in (readme, vision, security, changes)):
+    failures.append('docs must describe the malformed source URL authority boundary')
+if 'all 33' not in readme:
+    failures.append('README.md must record the complete 33-test offline suite')
 
 product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
 for evidence in (
@@ -293,6 +307,16 @@ for evidence in (
     if evidence not in malformed_product_link_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(MALFORMED_PRODUCT_LINK_PLAN), evidence))
+
+malformed_source_url_plan = read(MALFORMED_SOURCE_URL_PLAN) if os.path.isfile(MALFORMED_SOURCE_URL_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        'repository and external-directory `make check` passed',
+        'hostile malformed-source mutations were rejected',
+        'generated-artifact and credential-pattern audits passed'):
+    if evidence not in malformed_source_url_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(MALFORMED_SOURCE_URL_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:
