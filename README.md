@@ -82,6 +82,8 @@ python3 scrape.py --url https://example.test/products \
   parsing; override it with `--max-response-bytes` for a reviewed target. The
   bounded response reads consume short chunks through EOF so fragmented
   bodies cannot be silently truncated or escape the size check.
+- Source requests require identity content encoding, and responses that declare
+  any other content encoding are rejected before body reads.
 - Source page URLs must use `http` or `https` and include a host before the
   scraper opens them; malformed source URL authorities are rejected before
   opener construction.
@@ -104,7 +106,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 36 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 39 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18

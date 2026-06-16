@@ -186,6 +186,19 @@ class Product(object):
         opener = urllib2.build_opener(SameHostRedirectHandler(self.url))
         response = opener.open(self.build_request(), timeout=self.timeout)
         try:
+            headers = response.info()
+            if hasattr(headers, 'get_all'):
+                content_encodings = headers.get_all('Content-Encoding', [])
+            elif hasattr(headers, 'getheaders'):
+                content_encodings = headers.getheaders('Content-Encoding') or []
+            else:
+                content_encodings = [headers.get('Content-Encoding') or '']
+            for content_encoding in content_encodings:
+                declared_encodings = content_encoding.split(',')
+                if any(encoding.strip().lower() not in ('', 'identity')
+                       for encoding in declared_encodings):
+                    raise ValueError('response content encoding must be identity')
+
             chunks = []
             remaining = self.max_response_bytes + 1
             while remaining > 0:
@@ -209,7 +222,9 @@ class Product(object):
             response.close()
 
     def build_request(self):
-        return urllib2.Request(self.url)
+        request = urllib2.Request(self.url)
+        request.add_header('Accept-Encoding', 'identity')
+        return request
 
     def find(self):
         # find products via self.url and argument --url 

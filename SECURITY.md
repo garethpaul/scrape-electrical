@@ -62,6 +62,8 @@ parsing while still closing the response; increases require explicit CLI input.
 Bounded response reads continue through legal short response chunks until EOF or
 one byte beyond the limit, preventing fragmented bodies from being silently
 truncated or escaping complete size enforcement.
+Source requests require identity content encoding, and responses that declare
+any other content encoding are rejected before body reads.
 GitHub Actions runs the complete offline gate under Python 2.7 and Python 3.12,
 using a digest-pinned legacy container and an immutable setup action. Neither
 lane installs live scraping or database dependencies or receives database

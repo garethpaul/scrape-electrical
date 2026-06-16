@@ -69,13 +69,51 @@ class FakeProductDatabase(object):
         self.inserts.append((name, link, price))
 
 
+class FakeHeaders(object):
+    def __init__(self, content_encoding=None):
+        if isinstance(content_encoding, (list, tuple)):
+            self.content_encodings = list(content_encoding)
+        elif content_encoding is None:
+            self.content_encodings = []
+        else:
+            self.content_encodings = [content_encoding]
+
+    def get(self, name, default=None):
+        if name.lower() == 'content-encoding' and self.content_encodings:
+            return self.content_encodings[0]
+        return default
+
+    def get_all(self, name, default=None):
+        if name.lower() == 'content-encoding':
+            return list(self.content_encodings)
+        return default
+
+    def getheaders(self, name):
+        return self.get_all(name, [])
+
+
+class LegacyFakeHeaders(object):
+    def __init__(self, content_encoding=None):
+        self.headers = FakeHeaders(content_encoding)
+
+    def get(self, name, default=None):
+        return self.headers.get(name, default)
+
+    def getheaders(self, name):
+        return self.headers.get_all(name, [])
+
+
 class FakeResponse(object):
-    def __init__(self, body='response body', error=None):
+    def __init__(self, body='response body', error=None, content_encoding=None):
         self.body = body
         self.error = error
+        self.headers = FakeHeaders(content_encoding)
         self.closed = False
         self.read_sizes = []
         self.offset = 0
+
+    def info(self):
+        return self.headers
 
     def read(self, size=None):
         self.read_sizes.append(size)
@@ -94,11 +132,15 @@ class FakeResponse(object):
 
 
 class ChunkedResponse(object):
-    def __init__(self, chunks):
+    def __init__(self, chunks, content_encoding=None):
         self.chunks = list(chunks)
         self.empty = chunks[0][:0] if chunks else ''
+        self.headers = FakeHeaders(content_encoding)
         self.closed = False
         self.read_sizes = []
+
+    def info(self):
+        return self.headers
 
     def read(self, size=None):
         self.read_sizes.append(size)
@@ -453,6 +495,7 @@ class ProductParserTests(unittest.TestCase):
         self.assertIsInstance(handlers[0], scrape.SameHostRedirectHandler)
         request, timeout = opener.calls[0]
         self.assertEqual('https://example.test/source', request.get_full_url())
+        self.assertEqual('identity', request.get_header('Accept-encoding'))
         self.assertEqual(12, timeout)
         self.assertEqual(
             [
@@ -462,6 +505,60 @@ class ProductParserTests(unittest.TestCase):
             opener.response.read_sizes,
         )
         self.assertTrue(opener.response.closed)
+
+    def test_build_request_requires_identity_content_encoding(self):
+        product = scrape.Product(None, 'https://example.test/source')
+
+        request = product.build_request()
+
+        self.assertEqual('identity', request.get_header('Accept-encoding'))
+
+    def test_read_accepts_identity_content_encoding_variants(self):
+        original_build_opener = scrape.urllib2.build_opener
+        try:
+            for headers_type, content_encoding in (
+                    (FakeHeaders, None),
+                    (FakeHeaders, ''),
+                    (FakeHeaders, ' Identity '),
+                    (FakeHeaders, 'identity, IDENTITY'),
+                    (FakeHeaders, ['identity', ' Identity ']),
+                    (LegacyFakeHeaders, 'identity')):
+                response = FakeResponse(content_encoding=content_encoding)
+                response.headers = headers_type(content_encoding)
+                opener = FakeOpener(response=response)
+                scrape.urllib2.build_opener = lambda *args: opener
+                product = scrape.Product(None, 'https://example.test/source')
+
+                self.assertEqual('response body', product.read())
+                self.assertTrue(response.closed)
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+    def test_read_rejects_compressed_response_before_body_read(self):
+        original_build_opener = scrape.urllib2.build_opener
+        try:
+            for headers_type, content_encoding in (
+                    (FakeHeaders, 'gzip'),
+                    (FakeHeaders, 'identity, gzip'),
+                    (FakeHeaders, ['identity', 'gzip']),
+                    (LegacyFakeHeaders, ['identity', 'gzip'])):
+                response = FakeResponse(content_encoding=content_encoding)
+                response.headers = headers_type(content_encoding)
+                opener = FakeOpener(response=response)
+                scrape.urllib2.build_opener = lambda *args: opener
+                product = scrape.Product(None, 'https://example.test/source')
+                try:
+                    product.read()
+                except ValueError as error:
+                    self.assertEqual('response content encoding must be identity', str(error))
+                    self.assertNotIn('gzip', str(error))
+                else:
+                    self.fail('expected compressed response rejection')
+
+                self.assertEqual([], response.read_sizes)
+                self.assertTrue(response.closed)
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
 
     def test_read_accepts_body_at_configured_limit(self):
         response = FakeResponse(body='1234')

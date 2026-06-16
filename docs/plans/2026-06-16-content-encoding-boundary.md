@@ -1,7 +1,7 @@
 ---
 title: Reject Compressed Scraper Responses
 type: security
-status: planned
+status: completed
 date: 2026-06-16
 execution: code
 ---
@@ -82,3 +82,15 @@ guidance with completed plan evidence.
   supported runtime lanes.
 - PR #16 will be stacked on open PR #15 and requires base-first ordering;
   neither pull request may be merged or closed without explicit authorization.
+
+## Completion Evidence
+
+Status: Completed
+
+- The pre-change reproduction showed no `Accept-Encoding` request header and a
+  gzip-declared response reaching two body reads.
+- 39 tests passed under Python 2.7 and Python 3.12.
+- repository and external-directory `make check` passed under both runtimes.
+- hostile content-encoding mutations were rejected.
+- generated-artifact and credential-pattern audits passed.
+- No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.

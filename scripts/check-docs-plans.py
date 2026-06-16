@@ -28,6 +28,7 @@ MALFORMED_SOURCE_URL_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-malformed-sourc
 TIMEOUT_VALIDATION_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-finite-positive-timeout-validation.md')
 PYTHON3_COMPATIBILITY_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-python3-compatibility.md')
 COMPLETE_BOUNDED_READ_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-complete-bounded-response-read.md')
+CONTENT_ENCODING_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-content-encoding-boundary.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -61,6 +62,7 @@ for required_path in (
         TIMEOUT_VALIDATION_PLAN,
         PYTHON3_COMPATIBILITY_PLAN,
         COMPLETE_BOUNDED_READ_PLAN,
+        CONTENT_ENCODING_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -242,6 +244,20 @@ for phrase in (
         "raise ValueError('timeout must be positive')"):
     if phrase not in scrape_source:
         failures.append('scrape.py must retain finite positive timeout validation %r' % phrase)
+for phrase in (
+        "request.add_header('Accept-Encoding', 'identity')",
+        "headers.get_all('Content-Encoding', [])",
+        "headers.getheaders('Content-Encoding') or []",
+        "declared_encodings = content_encoding.split(',')",
+        "encoding.strip().lower() not in ('', 'identity')",
+        "raise ValueError('response content encoding must be identity')"):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain content encoding boundary %r' % phrase)
+encoding_check_index = scrape_source.find('headers = response.info()')
+body_read_index = scrape_source.find('chunk = response.read(remaining)')
+if (encoding_check_index >= 0 and body_read_index >= 0 and
+        encoding_check_index > body_read_index):
+    failures.append('scrape.py must reject non-identity content encoding before body reads')
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
 for phrase in (
@@ -288,6 +304,16 @@ for response_test in (
         'self.assertEqual([5, 3, 1], response.read_sizes)'):
     if response_test not in test_source:
         failures.append('tests/test_scrape.py must retain complete bounded response coverage %r' % response_test)
+for response_test in (
+        'test_build_request_requires_identity_content_encoding',
+        'test_read_accepts_identity_content_encoding_variants',
+        'test_read_rejects_compressed_response_before_body_read',
+        'class LegacyFakeHeaders(object):',
+        "self.assertEqual('identity', request.get_header('Accept-encoding'))",
+        'self.assertEqual([], response.read_sizes)',
+        "self.assertNotIn('gzip', str(error))"):
+    if response_test not in test_source:
+        failures.append('tests/test_scrape.py must retain content encoding coverage %r' % response_test)
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -335,8 +361,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 36' not in readme:
-    failures.append('README.md must record the complete 36-test offline suite')
+if 'all 39' not in readme:
+    failures.append('README.md must record the complete 39-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -349,10 +375,15 @@ for document_name, document in (
         failures.append('%s must document the Python 2.7 and Python 3.12 verification boundary' % document_name)
     if 'bounded response reads' not in document.lower():
         failures.append('%s must document complete bounded response reads' % document_name)
+    if ('identity content encoding' not in document.lower() or
+            'before body reads' not in document.lower()):
+        failures.append('%s must document the content encoding boundary' % document_name)
 
 agents = read(os.path.join(ROOT, 'AGENTS.md'))
 if 'Python 2.7 and Python 3.12' not in agents or 'make check PYTHON=python3' not in agents:
     failures.append('AGENTS.md must document both runtime gates')
+if 'identity content encoding' not in agents.lower() or 'before body reads' not in agents.lower():
+    failures.append('AGENTS.md must document the content encoding boundary')
 
 product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
 for evidence in (
@@ -418,6 +449,18 @@ for evidence in (
     if evidence not in complete_bounded_read_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(COMPLETE_BOUNDED_READ_PLAN), evidence))
+
+content_encoding_plan = read(CONTENT_ENCODING_PLAN) if os.path.isfile(CONTENT_ENCODING_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        '39 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile content-encoding mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in content_encoding_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(CONTENT_ENCODING_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

@@ -2,6 +2,8 @@
 
 ## 2026-06-16
 
+- Required identity content encoding for source requests and rejected responses
+  declaring any other content encoding before body reads.
 - Completed bounded response reads across legal short chunks so fragmented
   pages are not truncated and oversized fragmented bodies remain rejected.
 
