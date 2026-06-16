@@ -59,6 +59,9 @@ HTTP responses must close after body reads, including parser or transport
 failure paths, so repeated scraping does not leak network resources.
 The default 5 MiB response body size limit rejects oversized pages before HTML
 parsing while still closing the response; increases require explicit CLI input.
+Bounded response reads continue through legal short response chunks until EOF or
+one byte beyond the limit, preventing fragmented bodies from being silently
+truncated or escaping complete size enforcement.
 GitHub Actions runs the complete offline gate under Python 2.7 and Python 3.12,
 using a digest-pinned legacy container and an immutable setup action. Neither
 lane installs live scraping or database dependencies or receives database

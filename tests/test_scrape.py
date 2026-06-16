@@ -75,12 +75,40 @@ class FakeResponse(object):
         self.error = error
         self.closed = False
         self.read_sizes = []
+        self.offset = 0
 
     def read(self, size=None):
         self.read_sizes.append(size)
         if self.error is not None:
             raise self.error
-        return self.body
+        if size is None:
+            chunk = self.body[self.offset:]
+            self.offset = len(self.body)
+            return chunk
+        chunk = self.body[self.offset:self.offset + size]
+        self.offset += len(chunk)
+        return chunk
+
+    def close(self):
+        self.closed = True
+
+
+class ChunkedResponse(object):
+    def __init__(self, chunks):
+        self.chunks = list(chunks)
+        self.empty = chunks[0][:0] if chunks else ''
+        self.closed = False
+        self.read_sizes = []
+
+    def read(self, size=None):
+        self.read_sizes.append(size)
+        if not self.chunks:
+            return self.empty
+        chunk = self.chunks.pop(0)
+        if size is not None and len(chunk) > size:
+            self.chunks.insert(0, chunk[size:])
+            return chunk[:size]
+        return chunk
 
     def close(self):
         self.closed = True
@@ -427,7 +455,10 @@ class ProductParserTests(unittest.TestCase):
         self.assertEqual('https://example.test/source', request.get_full_url())
         self.assertEqual(12, timeout)
         self.assertEqual(
-            [scrape.DEFAULT_MAX_RESPONSE_BYTES + 1],
+            [
+                scrape.DEFAULT_MAX_RESPONSE_BYTES + 1,
+                scrape.DEFAULT_MAX_RESPONSE_BYTES - len('response body') + 1,
+            ],
             opener.response.read_sizes,
         )
         self.assertTrue(opener.response.closed)
@@ -448,7 +479,45 @@ class ProductParserTests(unittest.TestCase):
         finally:
             scrape.urllib2.build_opener = original_build_opener
 
-        self.assertEqual([5], response.read_sizes)
+        self.assertEqual([5, 1], response.read_sizes)
+        self.assertTrue(response.closed)
+
+    def test_read_collects_fragmented_body_until_eof(self):
+        response = ChunkedResponse([b'ab', b'cd'])
+        opener = FakeOpener(response=response)
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda *args: opener
+
+        try:
+            product = scrape.Product(
+                None,
+                'https://example.test/source',
+                max_response_bytes=4,
+            )
+            self.assertEqual(b'abcd', product.read())
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertEqual([5, 3, 1], response.read_sizes)
+        self.assertTrue(response.closed)
+
+    def test_read_rejects_fragmented_body_over_configured_limit(self):
+        response = ChunkedResponse([b'ab', b'cd', b'e'])
+        opener = FakeOpener(response=response)
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda *args: opener
+
+        try:
+            product = scrape.Product(
+                None,
+                'https://example.test/source',
+                max_response_bytes=4,
+            )
+            self.assertRaises(ValueError, product.read)
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertEqual([5, 3, 1], response.read_sizes)
         self.assertTrue(response.closed)
 
     def test_read_rejects_and_closes_oversized_body(self):

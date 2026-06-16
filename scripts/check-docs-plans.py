@@ -27,6 +27,7 @@ MALFORMED_PRODUCT_LINK_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-malformed-pro
 MALFORMED_SOURCE_URL_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-malformed-source-url-boundary.md')
 TIMEOUT_VALIDATION_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-finite-positive-timeout-validation.md')
 PYTHON3_COMPATIBILITY_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-python3-compatibility.md')
+COMPLETE_BOUNDED_READ_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-complete-bounded-response-read.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -59,6 +60,7 @@ for required_path in (
         MALFORMED_SOURCE_URL_PLAN,
         TIMEOUT_VALIDATION_PLAN,
         PYTHON3_COMPATIBILITY_PLAN,
+        COMPLETE_BOUNDED_READ_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -185,7 +187,12 @@ for phrase in (
         'max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES',
         'isinstance(max_response_bytes, bool) or',
         'not isinstance(max_response_bytes, INTEGER_TYPES) or',
-        'response.read(self.max_response_bytes + 1)',
+        'remaining = self.max_response_bytes + 1',
+        'while remaining > 0:',
+        'chunk = response.read(remaining)',
+        'if not chunk:',
+        'remaining -= len(chunk)',
+        'body = chunks[0][:0].join(chunks)',
         'if len(body) > self.max_response_bytes:',
         "'--max-response-bytes'",
         'max_response_bytes=options.max_response_bytes'):
@@ -275,6 +282,12 @@ if 'test_find_products_skips_credential_bearing_links' not in test_source:
     failures.append('tests/test_scrape.py must retain product link credential rejection coverage')
 if 'test_find_products_skips_malformed_links_and_continues' not in test_source:
     failures.append('tests/test_scrape.py must retain malformed product link continuation coverage')
+for response_test in (
+        'test_read_collects_fragmented_body_until_eof',
+        'test_read_rejects_fragmented_body_over_configured_limit',
+        'self.assertEqual([5, 3, 1], response.read_sizes)'):
+    if response_test not in test_source:
+        failures.append('tests/test_scrape.py must retain complete bounded response coverage %r' % response_test)
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -322,8 +335,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 34' not in readme:
-    failures.append('README.md must record the complete 34-test offline suite')
+if 'all 36' not in readme:
+    failures.append('README.md must record the complete 36-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -334,6 +347,8 @@ for document_name, document in (
         ('CHANGES.md', changes)):
     if 'Python 2.7 and Python 3.12' not in document:
         failures.append('%s must document the Python 2.7 and Python 3.12 verification boundary' % document_name)
+    if 'bounded response reads' not in document.lower():
+        failures.append('%s must document complete bounded response reads' % document_name)
 
 agents = read(os.path.join(ROOT, 'AGENTS.md'))
 if 'Python 2.7 and Python 3.12' not in agents or 'make check PYTHON=python3' not in agents:
@@ -391,6 +406,18 @@ for evidence in (
     if evidence not in python3_compatibility_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(PYTHON3_COMPATIBILITY_PLAN), evidence))
+
+complete_bounded_read_plan = read(COMPLETE_BOUNDED_READ_PLAN) if os.path.isfile(COMPLETE_BOUNDED_READ_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        '36 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile complete-read mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in complete_bounded_read_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(COMPLETE_BOUNDED_READ_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

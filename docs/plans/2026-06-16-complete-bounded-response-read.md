@@ -1,7 +1,7 @@
 ---
 title: Complete Bounded Response Read
 type: maintenance
-status: in_progress
+status: completed
 date: 2026-06-16
 execution: code
 ---
@@ -71,7 +71,15 @@ documentation, and completed evidence.
 
 ## Completion Evidence
 
-Status: In progress
+Status: Completed
 
 - Pre-change reproduction returned only the first `b'ab'` chunk instead of the
   complete `b'abcd'` body while still closing the response.
+- 36 tests passed under Python 2.7 and Python 3.12.
+- Both runtimes rejected single-read, dropped-remaining-accounting,
+  first-chunk-only, unbounded-read, source-contract, test-contract,
+  documentation-contract, and plan-status mutations. Sixteen focused hostile complete-read mutations were rejected.
+- The repository and external-directory `make check` passed under both runtimes.
+- The generated-artifact and credential-pattern audits passed for the intended
+  diff.
+- No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.

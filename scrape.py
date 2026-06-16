@@ -186,7 +186,20 @@ class Product(object):
         opener = urllib2.build_opener(SameHostRedirectHandler(self.url))
         response = opener.open(self.build_request(), timeout=self.timeout)
         try:
-            body = response.read(self.max_response_bytes + 1)
+            chunks = []
+            remaining = self.max_response_bytes + 1
+            while remaining > 0:
+                chunk = response.read(remaining)
+                if not chunk:
+                    if not chunks:
+                        return chunk
+                    break
+                if len(chunk) > remaining:
+                    chunk = chunk[:remaining]
+                chunks.append(chunk)
+                remaining -= len(chunk)
+
+            body = chunks[0][:0].join(chunks)
             if len(body) > self.max_response_bytes:
                 raise ValueError(
                     'response body exceeds maximum of %d bytes' % self.max_response_bytes

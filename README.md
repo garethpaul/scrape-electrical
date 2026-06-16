@@ -79,7 +79,9 @@ python3 scrape.py --url https://example.test/products \
   forever.
 - Scraper timeouts must be finite positive numbers before network setup.
 - Live fetches also enforce a 5 MiB response body size limit before HTML
-  parsing; override it with `--max-response-bytes` for a reviewed target.
+  parsing; override it with `--max-response-bytes` for a reviewed target. The
+  bounded response reads consume short chunks through EOF so fragmented
+  bodies cannot be silently truncated or escape the size check.
 - Source page URLs must use `http` or `https` and include a host before the
   scraper opens them; malformed source URL authorities are rejected before
   opener construction.
@@ -102,7 +104,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 34 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 36 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18

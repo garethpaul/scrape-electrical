@@ -19,6 +19,7 @@ Priority:
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
 - Keep a configurable response body size limit ahead of HTML parsing
+- Keep bounded response reads complete across legal short chunks
 - Close source-page responses on successful and failed body reads
 - Require source page URLs to use HTTP(S) before network reads
 - Reject malformed source URL authorities before opener construction

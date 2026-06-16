@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-16
+
+- Completed bounded response reads across legal short chunks so fragmented
+  pages are not truncated and oversized fragmented bodies remain rejected.
+
 ## 2026-06-15
 
 - Added dependency-free offline compatibility for Python 2.7 and Python 3.12,
