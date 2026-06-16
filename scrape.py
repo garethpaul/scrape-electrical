@@ -187,17 +187,16 @@ class Product(object):
         response = opener.open(self.build_request(), timeout=self.timeout)
         try:
             headers = response.info()
-            if hasattr(headers, 'get_all'):
-                content_encodings = headers.get_all('Content-Encoding', [])
-            elif hasattr(headers, 'getheaders'):
-                content_encodings = headers.getheaders('Content-Encoding') or []
-            else:
-                content_encodings = [headers.get('Content-Encoding') or '']
-            for content_encoding in content_encodings:
+            for content_encoding in self.header_values(
+                    headers, 'Content-Encoding'):
                 declared_encodings = content_encoding.split(',')
                 if any(encoding.strip().lower() not in ('', 'identity')
                        for encoding in declared_encodings):
                     raise ValueError('response content encoding must be identity')
+            for content_type in self.header_values(headers, 'Content-Type'):
+                media_type = content_type.split(';', 1)[0].strip().lower()
+                if media_type not in ('', 'text/html', 'application/xhtml+xml'):
+                    raise ValueError('response content type must be HTML')
 
             chunks = []
             remaining = self.max_response_bytes + 1
@@ -221,8 +220,16 @@ class Product(object):
         finally:
             response.close()
 
+    def header_values(self, headers, name):
+        if hasattr(headers, 'get_all'):
+            return headers.get_all(name, [])
+        if hasattr(headers, 'getheaders'):
+            return headers.getheaders(name) or []
+        return [headers.get(name) or '']
+
     def build_request(self):
         request = urllib2.Request(self.url)
+        request.add_header('Accept', 'text/html, application/xhtml+xml')
         request.add_header('Accept-Encoding', 'identity')
         return request
 

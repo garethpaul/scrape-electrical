@@ -29,6 +29,7 @@ TIMEOUT_VALIDATION_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-finite-positive-t
 PYTHON3_COMPATIBILITY_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-python3-compatibility.md')
 COMPLETE_BOUNDED_READ_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-complete-bounded-response-read.md')
 CONTENT_ENCODING_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-content-encoding-boundary.md')
+CONTENT_TYPE_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-content-type-boundary.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -63,6 +64,7 @@ for required_path in (
         PYTHON3_COMPATIBILITY_PLAN,
         COMPLETE_BOUNDED_READ_PLAN,
         CONTENT_ENCODING_PLAN,
+        CONTENT_TYPE_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -246,18 +248,34 @@ for phrase in (
         failures.append('scrape.py must retain finite positive timeout validation %r' % phrase)
 for phrase in (
         "request.add_header('Accept-Encoding', 'identity')",
-        "headers.get_all('Content-Encoding', [])",
-        "headers.getheaders('Content-Encoding') or []",
+        'def header_values(self, headers, name):',
+        'headers.get_all(name, [])',
+        'headers.getheaders(name) or []',
         "declared_encodings = content_encoding.split(',')",
         "encoding.strip().lower() not in ('', 'identity')",
         "raise ValueError('response content encoding must be identity')"):
     if phrase not in scrape_source:
         failures.append('scrape.py must retain content encoding boundary %r' % phrase)
+if re.search(r"self\.header_values\(\s*headers,\s*'Content-Encoding'\)", scrape_source) is None:
+    failures.append('scrape.py must retain shared content encoding header lookup')
 encoding_check_index = scrape_source.find('headers = response.info()')
 body_read_index = scrape_source.find('chunk = response.read(remaining)')
 if (encoding_check_index >= 0 and body_read_index >= 0 and
         encoding_check_index > body_read_index):
     failures.append('scrape.py must reject non-identity content encoding before body reads')
+for phrase in (
+        "request.add_header('Accept', 'text/html, application/xhtml+xml')",
+        "self.header_values(headers, 'Content-Type')",
+        "content_type.split(';', 1)[0].strip().lower()",
+        "media_type not in ('', 'text/html', 'application/xhtml+xml')",
+        "raise ValueError('response content type must be HTML')"):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain content type boundary %r' % phrase)
+content_type_check_index = scrape_source.find(
+    "self.header_values(headers, 'Content-Type')")
+if (content_type_check_index >= 0 and body_read_index >= 0 and
+        content_type_check_index > body_read_index):
+    failures.append('scrape.py must reject explicit non-HTML content types before body reads')
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
 for phrase in (
@@ -314,6 +332,30 @@ for response_test in (
         "self.assertNotIn('gzip', str(error))"):
     if response_test not in test_source:
         failures.append('tests/test_scrape.py must retain content encoding coverage %r' % response_test)
+for response_test in (
+        'test_build_request_accepts_html_source_types',
+        'test_read_accepts_html_content_type_variants',
+        'test_read_rejects_non_html_content_type_before_body_read',
+        'response.headers = headers_type(None, content_type)',
+        "'text/html', 'application/json'",
+        "'response content type must be HTML'"):
+    if response_test not in test_source:
+        failures.append('tests/test_scrape.py must retain content type coverage %r' % response_test)
+content_type_rejection_test = re.search(
+    r'def test_read_rejects_non_html_content_type_before_body_read\(self\):'
+    r'[\s\S]*?(?=\n    def |\Z)',
+    test_source,
+)
+if content_type_rejection_test is None:
+    failures.append('tests/test_scrape.py must retain the non-HTML rejection test block')
+else:
+    for phrase in (
+            "'text/html', 'application/json'",
+            "'response content type must be HTML'",
+            'self.assertEqual([], response.read_sizes)',
+            'self.assertTrue(response.closed)'):
+        if phrase not in content_type_rejection_test.group(0):
+            failures.append('non-HTML rejection test must retain %r' % phrase)
 
 link_scheme_plan = read(LINK_SCHEME_PLAN) if os.path.isfile(LINK_SCHEME_PLAN) else ''
 if 'Status: Completed' not in link_scheme_plan or 'Product.normalized_link()' not in link_scheme_plan:
@@ -361,8 +403,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 39' not in readme:
-    failures.append('README.md must record the complete 39-test offline suite')
+if 'all 42' not in readme:
+    failures.append('README.md must record the complete 42-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -378,12 +420,16 @@ for document_name, document in (
     if ('identity content encoding' not in document.lower() or
             'before body reads' not in document.lower()):
         failures.append('%s must document the content encoding boundary' % document_name)
+    if 'explicit non-html content types' not in document.lower():
+        failures.append('%s must document the content type boundary' % document_name)
 
 agents = read(os.path.join(ROOT, 'AGENTS.md'))
 if 'Python 2.7 and Python 3.12' not in agents or 'make check PYTHON=python3' not in agents:
     failures.append('AGENTS.md must document both runtime gates')
 if 'identity content encoding' not in agents.lower() or 'before body reads' not in agents.lower():
     failures.append('AGENTS.md must document the content encoding boundary')
+if 'explicit non-html content types' not in agents.lower():
+    failures.append('AGENTS.md must document the content type boundary')
 
 product_link_userinfo_plan = read(PRODUCT_LINK_USERINFO_PLAN) if os.path.isfile(PRODUCT_LINK_USERINFO_PLAN) else ''
 for evidence in (
@@ -461,6 +507,18 @@ for evidence in (
     if evidence not in content_encoding_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(CONTENT_ENCODING_PLAN), evidence))
+
+content_type_plan = read(CONTENT_TYPE_PLAN) if os.path.isfile(CONTENT_TYPE_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        '42 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile content-type mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in content_type_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(CONTENT_TYPE_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

@@ -64,6 +64,9 @@ one byte beyond the limit, preventing fragmented bodies from being silently
 truncated or escaping complete size enforcement.
 Source requests require identity content encoding, and responses that declare
 any other content encoding are rejected before body reads.
+Source requests advertise HTML, and explicit non-HTML content types are
+rejected before body reads without echoing the supplied header value. Missing
+`Content-Type` remains accepted for historical endpoint compatibility.
 GitHub Actions runs the complete offline gate under Python 2.7 and Python 3.12,
 using a digest-pinned legacy container and an immutable setup action. Neither
 lane installs live scraping or database dependencies or receives database

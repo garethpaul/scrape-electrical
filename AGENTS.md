@@ -53,6 +53,8 @@
 - Scraper timeouts must be finite positive numbers before network setup.
 - Source requests require identity content encoding, and responses that declare
   any other content encoding are rejected before body reads.
+- Source requests advertise HTML, and explicit non-HTML content types are
+  rejected before body reads; missing `Content-Type` remains compatible.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link handling.
 - Hosted checks must run the complete offline suite under Python 2.7 and Python 3.12, using the reviewed digest-pinned legacy container and immutable setup
   action with credential-free checkout, read-only permissions, and no live

@@ -84,6 +84,8 @@ python3 scrape.py --url https://example.test/products \
   bodies cannot be silently truncated or escape the size check.
 - Source requests require identity content encoding, and responses that declare
   any other content encoding are rejected before body reads.
+- Source requests advertise HTML and reject explicit non-HTML content types
+  before body reads; missing `Content-Type` remains accepted for legacy sites.
 - Source page URLs must use `http` or `https` and include a host before the
   scraper opens them; malformed source URL authorities are rejected before
   opener construction.
@@ -106,7 +108,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 39 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 42 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
@@ -123,6 +125,8 @@ python3 scrape.py --url https://example.test/products \
   body reads.
 - Network tests cover the exact response body size limit, oversized rejection,
   configured read size, and response closure.
+- Network tests cover HTML/XHTML response declarations, missing legacy media
+  types, and pre-read rejection of explicit non-HTML content types.
 - Redirect tests lock the five-hop and two-repeat budgets.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
@@ -187,6 +191,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   caller-resistant, location-independent offline verification root.
 - See `docs/plans/2026-06-15-python3-compatibility.md` for the Python 2.7 and
   Python 3.12 offline compatibility boundary.
+- See `docs/plans/2026-06-16-content-type-boundary.md` for the declared HTML
+  response media-type boundary.
 
 ## Contributing
 

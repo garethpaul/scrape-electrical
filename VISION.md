@@ -21,6 +21,8 @@ Priority:
 - Keep a configurable response body size limit ahead of HTML parsing
 - Keep bounded response reads complete across legal short chunks
 - Require identity content encoding and reject other encodings before body reads
+- Reject explicit non-HTML content types before body reads while retaining
+  compatibility with source pages that omit the header
 - Close source-page responses on successful and failed body reads
 - Require source page URLs to use HTTP(S) before network reads
 - Reject malformed source URL authorities before opener construction

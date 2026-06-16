@@ -2,6 +2,8 @@
 
 ## 2026-06-16
 
+- Advertised HTML source responses and rejected explicit non-HTML content types
+  before reading response bodies, while preserving missing-header compatibility.
 - Required identity content encoding for source requests and rejected responses
   declaring any other content encoding before body reads.
 - Completed bounded response reads across legal short chunks so fragmented
