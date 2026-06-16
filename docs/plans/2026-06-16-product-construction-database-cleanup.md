@@ -1,6 +1,6 @@
 # Close Database Resources When Product Construction Fails
 
-Status: Planned
+Status: Completed
 
 ## Context
 
@@ -28,4 +28,11 @@ timeout, and response-size limit. If that constructor rejects an invalid value,
 
 ## Verification
 
-- Pending implementation and dual-runtime validation.
+- 46 tests passed under Python 2.7 and Python 3.12, including source URL,
+  timeout, response-limit, and successful single-close ownership cases.
+- The repository and external-directory `make check` passed under both runtimes.
+- Four hostile construction-cleanup mutations were rejected on both runtimes:
+  removed cleanup, swallowed validation failure, double cleanup after success,
+  and removed constructor exception handling.
+- Exact diff, generated-artifact and credential-pattern audits passed.
+- No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.

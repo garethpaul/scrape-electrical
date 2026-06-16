@@ -64,9 +64,13 @@ class FakeDatabaseConnection(FakeConnection):
 class FakeProductDatabase(object):
     def __init__(self):
         self.inserts = []
+        self.close_count = 0
 
     def insert(self, name, link, price):
         self.inserts.append((name, link, price))
+
+    def close(self):
+        self.close_count += 1
 
 
 class FakeHeaders(object):
@@ -320,6 +324,46 @@ class DatabaseTests(unittest.TestCase):
 
 
 class CLITests(unittest.TestCase):
+    def assertConstructionFailureCloses(self, url, **options):
+        database = FakeProductDatabase()
+
+        self.assertRaises(ValueError, scrape.main, database, url, **options)
+        self.assertEqual(1, database.close_count)
+
+    def test_main_closes_database_when_source_url_validation_fails(self):
+        self.assertConstructionFailureCloses('file:///etc/passwd')
+
+    def test_main_closes_database_when_timeout_validation_fails(self):
+        self.assertConstructionFailureCloses(
+            'https://example.test/source',
+            timeout=0,
+        )
+
+    def test_main_closes_database_when_response_limit_validation_fails(self):
+        self.assertConstructionFailureCloses(
+            'https://example.test/source',
+            max_response_bytes=0,
+        )
+
+    def test_main_leaves_successful_cleanup_to_product_find(self):
+        database = FakeProductDatabase()
+        original_product = scrape.Product
+
+        class SuccessfulProduct(object):
+            def __init__(self, product_database, url, timeout, max_response_bytes):
+                self.database = product_database
+
+            def find(self):
+                self.database.close()
+
+        scrape.Product = SuccessfulProduct
+        try:
+            scrape.main(database, 'https://example.test/source')
+        finally:
+            scrape.Product = original_product
+
+        self.assertEqual(1, database.close_count)
+
     def test_parse_args_supports_dry_run_without_database_credentials(self):
         options = scrape.parse_args([
             '--url', 'https://example.test/source',

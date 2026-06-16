@@ -2,6 +2,8 @@
 
 ## 2026-06-16
 
+- Closed database resources when source URL, timeout, or response-limit
+  validation fails after CLI database construction.
 - Advertised HTML source responses and rejected explicit non-HTML content types
   before reading response bodies, while preserving missing-header compatibility.
 - Required identity content encoding for source requests and rejected responses

@@ -130,8 +130,9 @@ python3 scrape.py --url https://example.test/products \
 - Redirect tests lock the five-hop and two-repeat budgets.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
-- Database tests also cover cursor-first cleanup and connection close attempts
-  when cursor cleanup fails.
+- Database tests also cover cursor-first cleanup, connection close attempts
+  when cursor cleanup fails, and cleanup when product validation rejects input
+  after database creation.
 - CLI tests cover dry-run parsing, dry-run output, complete credential
   requirements for live writes, and explicit live database construction.
 - `make check` runs with Python bytecode disabled and fails if `.pyc` or `.pyo`
@@ -193,6 +194,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   Python 3.12 offline compatibility boundary.
 - See `docs/plans/2026-06-16-content-type-boundary.md` for the declared HTML
   response media-type boundary.
+- See `docs/plans/2026-06-16-product-construction-database-cleanup.md` for
+  cleanup when source or network-limit validation fails after database setup.
 
 ## Contributing
 

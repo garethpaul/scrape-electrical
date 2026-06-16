@@ -371,12 +371,16 @@ def run_cli(argv=None):
 def main(database, url, timeout=30,
          max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES):
     # put database with Product and include the url
-    p = Product(
-        database,
-        url,
-        timeout=timeout,
-        max_response_bytes=max_response_bytes
-    )
+    try:
+        p = Product(
+            database,
+            url,
+            timeout=timeout,
+            max_response_bytes=max_response_bytes
+        )
+    except Exception:
+        database.close()
+        raise
     # find products and place them in a database
     p.find()
 

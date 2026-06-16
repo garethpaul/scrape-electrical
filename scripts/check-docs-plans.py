@@ -30,6 +30,9 @@ PYTHON3_COMPATIBILITY_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-python3-compat
 COMPLETE_BOUNDED_READ_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-complete-bounded-response-read.md')
 CONTENT_ENCODING_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-content-encoding-boundary.md')
 CONTENT_TYPE_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-content-type-boundary.md')
+CONSTRUCTION_CLEANUP_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-16-product-construction-database-cleanup.md'
+)
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -65,6 +68,7 @@ for required_path in (
         COMPLETE_BOUNDED_READ_PLAN,
         CONTENT_ENCODING_PLAN,
         CONTENT_TYPE_PLAN,
+        CONSTRUCTION_CLEANUP_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -186,6 +190,22 @@ if "'missing database options for live writes:" not in scrape_source:
     failures.append('scrape.py must reject live CLI writes without complete DB options')
 if "if __name__ == '__main__':\n    run_cli()" not in scrape_source:
     failures.append('scrape.py must run the CLI entry point when executed directly')
+constructor_cleanup = (
+    '    try:\n'
+    '        p = Product(\n'
+    '            database,\n'
+    '            url,\n'
+    '            timeout=timeout,\n'
+    '            max_response_bytes=max_response_bytes\n'
+    '        )\n'
+    '    except Exception:\n'
+    '        database.close()\n'
+    '        raise\n'
+    '    # find products and place them in a database\n'
+    '    p.find()'
+)
+if constructor_cleanup not in scrape_source:
+    failures.append('scrape.py must close the database when Product construction fails')
 for phrase in (
         'DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024',
         'max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES',
@@ -304,6 +324,13 @@ if 'test_product_rejects_source_url_credentials_without_echoing_them' not in tes
     failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
 if 'test_product_rejects_malformed_source_authorities_without_echoing_them' not in test_source:
     failures.append('tests/test_scrape.py must retain malformed source URL authority coverage')
+for cleanup_test in (
+        'test_main_closes_database_when_source_url_validation_fails',
+        'test_main_closes_database_when_timeout_validation_fails',
+        'test_main_closes_database_when_response_limit_validation_fails',
+        'test_main_leaves_successful_cleanup_to_product_find'):
+    if cleanup_test not in test_source:
+        failures.append('tests/test_scrape.py must retain %s' % cleanup_test)
 for timeout_test in (
         'test_product_accepts_positive_finite_timeout',
         'test_product_rejects_invalid_timeout_values',
@@ -519,6 +546,20 @@ for evidence in (
     if evidence not in content_type_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(CONTENT_TYPE_PLAN), evidence))
+
+construction_cleanup_plan = read(CONSTRUCTION_CLEANUP_PLAN) if os.path.isfile(
+    CONSTRUCTION_CLEANUP_PLAN
+) else ''
+for evidence in (
+        'Status: Completed',
+        '46 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile construction-cleanup mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in construction_cleanup_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(CONSTRUCTION_CLEANUP_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:
