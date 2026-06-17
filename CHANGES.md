@@ -2,6 +2,8 @@
 
 ## 2026-06-17
 
+- Added Product construction primary error preservation so validation and
+  interruption failures survive secondary database-close errors.
 - Closed PostgreSQL connections when cursor construction fails, while
   preserving the original cursor error if connection cleanup also fails.
 

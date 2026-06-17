@@ -88,6 +88,12 @@ class FakeProductDatabase(object):
         self.close_count += 1
 
 
+class FailingCloseProductDatabase(FakeProductDatabase):
+    def close(self):
+        super(FailingCloseProductDatabase, self).close()
+        raise RuntimeError('database close failed')
+
+
 class FakeHeaders(object):
     def __init__(self, content_encoding=None, content_type=None):
         self.values = {}
@@ -405,6 +411,32 @@ class CLITests(unittest.TestCase):
             scrape.Product = original_product
 
         self.assertEqual(1, database.close_count)
+
+    def assertProductConstructionErrorPreserved(self, primary_error):
+        database = FailingCloseProductDatabase()
+        original_product = scrape.Product
+
+        class FailingProduct(object):
+            def __init__(self, product_database, url, timeout, max_response_bytes):
+                raise primary_error
+
+        scrape.Product = FailingProduct
+        caught_error = None
+        try:
+            scrape.main(database, 'https://example.test/source')
+        except BaseException as error:
+            caught_error = error
+        finally:
+            scrape.Product = original_product
+
+        self.assertTrue(caught_error is primary_error)
+        self.assertEqual(1, database.close_count)
+
+    def test_main_preserves_validation_error_when_cleanup_fails(self):
+        self.assertProductConstructionErrorPreserved(ValueError('invalid product configuration'))
+
+    def test_main_closes_database_and_preserves_interruption(self):
+        self.assertProductConstructionErrorPreserved(KeyboardInterrupt())
 
     def test_parse_args_supports_dry_run_without_database_credentials(self):
         options = scrape.parse_args([

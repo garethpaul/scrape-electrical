@@ -1,6 +1,6 @@
 # Product Construction Primary Error Preservation
 
-## Status: In Progress
+## Status: Completed
 
 ## Context
 
@@ -114,8 +114,28 @@ both runtimes, and guidance drift fails the static contract.
 
 ## Work Completed
 
-- Pending implementation.
+- Expanded the `Product` construction boundary to catch every
+  `BaseException`, attempt database cleanup in a separate helper frame, and bare
+  re-raise the original error.
+- Suppressed only secondary database-close failures while a primary
+  construction exception is active; successful `Product.find()` ownership and
+  single-close behavior remain unchanged.
+- Added exact-object regressions for validation failure plus close failure and
+  interruption plus cleanup, and registered fail-closed source, test,
+  documentation, and plan contracts.
 
 ## Verification
 
-- Pending implementation and validation.
+- 50 tests passed under Python 2.7 and Python 3.12, including the focused
+  validation-error, interruption, and successful single-close cases.
+- The repository and external-directory `make check` passed under both runtimes
+  with documentation, syntax, 21 workflow mutations, and all offline tests.
+- Seven hostile primary-error mutations were rejected across exception scope,
+  inline cleanup, helper suppression, bare re-raise, both focused regressions,
+  and guidance.
+- Structured correctness, reliability, security, compatibility,
+  maintainability, and testing review found no actionable findings.
+- Exact diff, generated-artifact and credential-pattern audits passed with only
+  the eight intended paths; no bytecode, binary, dependency, workflow, or mode
+  drift was introduced.
+- No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.

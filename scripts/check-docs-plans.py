@@ -36,6 +36,9 @@ CONSTRUCTION_CLEANUP_PLAN = os.path.join(
 DATABASE_CONSTRUCTOR_CLEANUP_PLAN = os.path.join(
     DOCS_PLANS, '2026-06-17-database-cursor-construction-cleanup.md'
 )
+PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-17-product-construction-primary-error.md'
+)
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -73,6 +76,7 @@ for required_path in (
         CONTENT_TYPE_PLAN,
         CONSTRUCTION_CLEANUP_PLAN,
         DATABASE_CONSTRUCTOR_CLEANUP_PLAN,
+        PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -209,14 +213,19 @@ constructor_cleanup = (
     '            timeout=timeout,\n'
     '            max_response_bytes=max_response_bytes\n'
     '        )\n'
-    '    except Exception:\n'
-    '        database.close()\n'
+    '    except BaseException:\n'
+    '        _close_database_after_product_construction_failure(database)\n'
     '        raise\n'
     '    # find products and place them in a database\n'
     '    p.find()'
 )
 if constructor_cleanup not in scrape_source:
-    failures.append('scrape.py must close the database when Product construction fails')
+    failures.append('scrape.py must preserve primary Product construction errors during cleanup')
+for phrase in (
+        'def _close_database_after_product_construction_failure(database):',
+        'try:\n        database.close()\n    except BaseException:\n        pass'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain non-masking Product construction cleanup %r' % phrase)
 for phrase in (
         'DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024',
         'max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES',
@@ -309,6 +318,13 @@ if (content_type_check_index >= 0 and body_read_index >= 0 and
     failures.append('scrape.py must reject explicit non-HTML content types before body reads')
 
 test_source = read(os.path.join(ROOT, 'tests', 'test_scrape.py'))
+for phrase in (
+        'def test_main_preserves_validation_error_when_cleanup_fails(self):',
+        'def test_main_closes_database_and_preserves_interruption(self):',
+        'self.assertTrue(caught_error is primary_error)',
+        'self.assertEqual(1, database.close_count)'):
+    if phrase not in test_source:
+        failures.append('tests/test_scrape.py must retain Product primary-error regression %r' % phrase)
 for phrase in (
         'try:\n    import StringIO',
         'except ImportError:\n    import io as StringIO'):
@@ -449,8 +465,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 48' not in readme:
-    failures.append('README.md must record the complete 48-test offline suite')
+if 'all 50' not in readme:
+    failures.append('README.md must record the complete 50-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -468,6 +484,8 @@ for document_name, document in (
         failures.append('%s must document the content encoding boundary' % document_name)
     if 'explicit non-html content types' not in document.lower():
         failures.append('%s must document the content type boundary' % document_name)
+    if 'product construction primary error' not in document.lower():
+        failures.append('%s must document Product construction primary error preservation' % document_name)
 
 agents = read(os.path.join(ROOT, 'AGENTS.md'))
 if 'Python 2.7 and Python 3.12' not in agents or 'make check PYTHON=python3' not in agents:
@@ -593,6 +611,20 @@ for evidence in (
     if evidence not in database_constructor_cleanup_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(DATABASE_CONSTRUCTOR_CLEANUP_PLAN), evidence))
+
+product_construction_primary_error_plan = read(
+    PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN
+) if os.path.isfile(PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        '50 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile primary-error mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in product_construction_primary_error_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

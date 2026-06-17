@@ -108,7 +108,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 48 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 50 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
@@ -134,6 +134,8 @@ python3 scrape.py --url https://example.test/products \
   when cursor cleanup fails, connection cleanup when cursor construction fails,
   primary-error preservation when that cleanup also fails, and cleanup when
   product validation rejects input after database creation.
+- Product construction primary error preservation keeps validation and
+  interruption failures authoritative when database cleanup also fails.
 - CLI tests cover dry-run parsing, dry-run output, complete credential
   requirements for live writes, and explicit live database construction.
 - `make check` runs with Python bytecode disabled and fails if `.pyc` or `.pyo`
@@ -200,6 +202,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-17-database-cursor-construction-cleanup.md` for
   connection cleanup when cursor construction prevents database setup from
   completing.
+- See `docs/plans/2026-06-17-product-construction-primary-error.md` for cleanup
+  that preserves the Product construction primary error over close failures.
 
 ## Contributing
 

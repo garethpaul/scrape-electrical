@@ -38,6 +38,8 @@ Priority:
 - Require a dry-run or complete database credentials for command-line runs
 - Keep database cursor cleanup ordered before connection teardown
 - Keep connection cleanup attempted when cursor cleanup fails
+- Preserve the Product construction primary error when database cleanup also
+  fails or construction is interrupted
 - Keep completed maintenance plans under `docs/plans`
 - Keep verification runs from leaving Python bytecode in the checkout
 - Keep GitHub Actions running the complete offline scraper suite under Python 2.7 and Python 3.12 with credential-free checkout and no live dependency installation

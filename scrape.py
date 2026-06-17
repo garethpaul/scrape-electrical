@@ -389,11 +389,19 @@ def main(database, url, timeout=30,
             timeout=timeout,
             max_response_bytes=max_response_bytes
         )
-    except Exception:
-        database.close()
+    except BaseException:
+        _close_database_after_product_construction_failure(database)
         raise
     # find products and place them in a database
     p.find()
+
+
+def _close_database_after_product_construction_failure(database):
+    # A separate frame preserves the active exception on Python 2.
+    try:
+        database.close()
+    except BaseException:
+        pass
 
 
 if __name__ == '__main__':
