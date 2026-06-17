@@ -101,7 +101,18 @@ class Database(object):
             host=self.dbhost,
             dbname=self.dbname
         )
-        self.cur = self.conn.cursor()
+        try:
+            self.cur = self.conn.cursor()
+        except BaseException:
+            self._close_connection_after_cursor_failure()
+            raise
+
+    def _close_connection_after_cursor_failure(self):
+        # A separate frame preserves the active exception on Python 2.
+        try:
+            self.conn.close()
+        except BaseException:
+            pass
 
     def close(self):
         # Over psycopg2 must be closed

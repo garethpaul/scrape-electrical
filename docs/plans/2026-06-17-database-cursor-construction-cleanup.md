@@ -6,7 +6,7 @@ date: 2026-06-17
 
 # Close Database Connections When Cursor Construction Fails
 
-Status: In Progress
+Status: Completed
 
 ## Context
 
@@ -61,8 +61,11 @@ cleanup path because construction never completes.
 
 ## Verification
 
-- Planned: focused constructor tests under Python 2.7 and Python 3.12.
-- Planned: repository-root and external-directory `make check` under both
-  supported runtimes.
-- Planned: mutation, exact-diff, generated-artifact, and credential-pattern
-  audits.
+- 48 tests passed under Python 2.7 and Python 3.12, including cleanup-attempt
+  and primary-error preservation cases.
+- The repository and external-directory `make check` passed under both runtimes.
+- Four hostile database-constructor cleanup mutations were rejected under both
+  runtimes: removed cleanup, swallowed cursor failure, removed cleanup-error
+  suppression, and removed the cursor acquisition guard.
+- Exact-diff, generated-artifact and credential-pattern audits passed.
+- No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.

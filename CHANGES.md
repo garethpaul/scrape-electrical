@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-17
+
+- Closed PostgreSQL connections when cursor construction fails, while
+  preserving the original cursor error if connection cleanup also fails.
+
 ## 2026-06-16
 
 - Closed database resources when source URL, timeout, or response-limit

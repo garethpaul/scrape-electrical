@@ -61,6 +61,21 @@ class FakeDatabaseConnection(FakeConnection):
         return self.cursor_instance
 
 
+class CursorFailingConnection(FakeConnection):
+    def __init__(self, close_error=None):
+        super(CursorFailingConnection, self).__init__()
+        self.close_count = 0
+        self.close_error = close_error
+
+    def cursor(self):
+        raise RuntimeError('cursor setup failed')
+
+    def close(self):
+        self.close_count += 1
+        if self.close_error is not None:
+            raise self.close_error
+
+
 class FakeProductDatabase(object):
     def __init__(self):
         self.inserts = []
@@ -247,6 +262,27 @@ def database_with(table_name):
 
 
 class DatabaseTests(unittest.TestCase):
+    def assertCursorConstructionFailureCloses(self, close_error=None):
+        connection = CursorFailingConnection(close_error)
+        fake_psycopg2 = types.ModuleType('psycopg2')
+        fake_psycopg2.connect = lambda **kwargs: connection
+        original_psycopg2 = sys.modules.get('psycopg2', MISSING_HREF)
+        sys.modules['psycopg2'] = fake_psycopg2
+        try:
+            try:
+                scrape.Database('db', 'user', 'password', 'host', 'products')
+            except RuntimeError as error:
+                self.assertEqual('cursor setup failed', str(error))
+            else:
+                self.fail('cursor construction failure must propagate')
+        finally:
+            if original_psycopg2 is MISSING_HREF:
+                del sys.modules['psycopg2']
+            else:
+                sys.modules['psycopg2'] = original_psycopg2
+
+        self.assertEqual(1, connection.close_count)
+
     def test_database_connect_uses_keyword_parameters(self):
         calls = []
         fake_psycopg2 = types.ModuleType('psycopg2')
@@ -282,6 +318,12 @@ class DatabaseTests(unittest.TestCase):
             calls,
         )
         self.assertIsInstance(database.cur, FakeCursor)
+
+    def test_constructor_closes_connection_when_cursor_creation_fails(self):
+        self.assertCursorConstructionFailureCloses()
+
+    def test_constructor_preserves_cursor_failure_when_connection_close_fails(self):
+        self.assertCursorConstructionFailureCloses(RuntimeError('connection close failed'))
 
     def test_insert_uses_parameterized_values(self):
         database = database_with('products')

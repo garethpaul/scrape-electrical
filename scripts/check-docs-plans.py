@@ -33,6 +33,9 @@ CONTENT_TYPE_PLAN = os.path.join(DOCS_PLANS, '2026-06-16-content-type-boundary.m
 CONSTRUCTION_CLEANUP_PLAN = os.path.join(
     DOCS_PLANS, '2026-06-16-product-construction-database-cleanup.md'
 )
+DATABASE_CONSTRUCTOR_CLEANUP_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-17-database-cursor-construction-cleanup.md'
+)
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -69,6 +72,7 @@ for required_path in (
         CONTENT_ENCODING_PLAN,
         CONTENT_TYPE_PLAN,
         CONSTRUCTION_CLEANUP_PLAN,
+        DATABASE_CONSTRUCTOR_CLEANUP_PLAN,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -143,6 +147,13 @@ if 'psycopg2.connect("user=%s password=%s host=%s dbname=%s"' in scrape_source:
     failures.append('scrape.py must not build a psycopg2 connection string by interpolation')
 if 'psycopg2.connect(\n            user=self.dbuser,' not in scrape_source:
     failures.append('scrape.py must pass database connection fields as psycopg2 keyword arguments')
+for phrase in (
+        'try:\n            self.cur = self.conn.cursor()',
+        'except BaseException:\n            self._close_connection_after_cursor_failure()\n            raise',
+        'def _close_connection_after_cursor_failure(self):',
+        'try:\n            self.conn.close()\n        except BaseException:\n            pass'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must retain database constructor cleanup %r' % phrase)
 for phrase in (
         'try:\n    import urllib2',
         'from urlparse import urljoin, urlparse',
@@ -331,6 +342,14 @@ for cleanup_test in (
         'test_main_leaves_successful_cleanup_to_product_find'):
     if cleanup_test not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % cleanup_test)
+for constructor_cleanup_test in (
+        'test_constructor_closes_connection_when_cursor_creation_fails',
+        'test_constructor_preserves_cursor_failure_when_connection_close_fails',
+        "self.assertEqual('cursor setup failed', str(error))",
+        'self.assertEqual(1, connection.close_count)'):
+    if constructor_cleanup_test not in test_source:
+        failures.append('tests/test_scrape.py must retain constructor cleanup coverage %r' % (
+            constructor_cleanup_test))
 for timeout_test in (
         'test_product_accepts_positive_finite_timeout',
         'test_product_rejects_invalid_timeout_values',
@@ -430,8 +449,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 42' not in readme:
-    failures.append('README.md must record the complete 42-test offline suite')
+if 'all 48' not in readme:
+    failures.append('README.md must record the complete 48-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -560,6 +579,20 @@ for evidence in (
     if evidence not in construction_cleanup_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(CONSTRUCTION_CLEANUP_PLAN), evidence))
+
+database_constructor_cleanup_plan = read(DATABASE_CONSTRUCTOR_CLEANUP_PLAN) if os.path.isfile(
+    DATABASE_CONSTRUCTOR_CLEANUP_PLAN
+) else ''
+for evidence in (
+        'Status: Completed',
+        '48 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile database-constructor cleanup mutations were rejected',
+        'generated-artifact and credential-pattern audits passed',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in database_constructor_cleanup_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(DATABASE_CONSTRUCTOR_CLEANUP_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:
