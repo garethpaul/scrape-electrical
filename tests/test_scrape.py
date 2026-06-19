@@ -164,6 +164,9 @@ class FakeRedirectResponse(object):
     def __init__(self):
         self.close_count = 0
 
+    def read(self, size=None):
+        return ''
+
     def close(self):
         self.close_count += 1
 
