@@ -1,16 +1,71 @@
 # Changes
 
+## 2026-06-19
+
+- Closed rejected redirect response bodies before raising sanitized same-host
+  redirect errors, removing Python 3 `ResourceWarning` leakage from blocked
+  redirect paths.
+
+## 2026-06-17
+
+- Added Product construction primary error preservation so validation and
+  interruption failures survive secondary database-close errors.
+- Closed PostgreSQL connections when cursor construction fails, while
+  preserving the original cursor error if connection cleanup also fails.
+
+## 2026-06-16
+
+- Closed database resources when source URL, timeout, or response-limit
+  validation fails after CLI database construction.
+- Advertised HTML source responses and rejected explicit non-HTML content types
+  before reading response bodies, while preserving missing-header compatibility.
+- Required identity content encoding for source requests and rejected responses
+  declaring any other content encoding before body reads.
+- Completed bounded response reads across legal short chunks so fragmented
+  pages are not truncated and oversized fragmented bodies remain rejected.
+
+## 2026-06-15
+
+- Added dependency-free offline compatibility for Python 2.7 and Python 3.12,
+  with matching local and hosted verification lanes.
+- Scraper timeouts must be finite positive numbers before network setup.
+- Rejected malformed source URL authorities before opener construction without
+  disclosing the supplied URL.
+
+## 2026-06-14
+
+- Rejected malformed product links at the row boundary while continuing to
+  process later safe products.
+
+## 2026-06-13
+
+- Rejected product link credentials parsed from remote markup before database
+  writes or dry-run output while continuing to process safe products.
+- Rejected source URL credentials before initial request construction, with
+  non-disclosing Python 2 regression coverage.
+- Added an explicit redirect hop limit of five total redirects and two repeats
+  of the same target, with Python 2 regression coverage.
+
+## 2026-06-12
+
+- Added a configurable 5 MiB response body size limit with exact-boundary,
+  oversized-read, closure, validation, and CLI-forwarding coverage.
+- Added a same-host redirect boundary that permits relative paths and HTTPS
+  upgrades while rejecting cross-host, alternate-port, downgrade, non-web,
+  hostless, or credential targets.
+
 ## 2026-06-10
 
 - Closed scraper HTTP responses after successful and failed body reads, with
   Python 2 regression coverage.
-- Added a least-privilege GitHub Actions workflow that runs `make check` with
-  Python 3.12 and pinned Node 24-compatible actions.
-- Made the Python 3 documentation-plan baseline unconditional while preserving
-  Python 2 compile and unit tests whenever the legacy interpreter is installed.
-- Replaced successful Python 2 skips with all 20 offline tests in a
+- Added a least-privilege GitHub Actions workflow that runs the complete
+  offline `make check` gate with credential-free checkout pinned by commit.
+- Replaced the prepared Python 3 skip path with the complete offline tests in a
   digest-pinned Python 2.7.18 container.
 - Made the canonical gate independent of the caller's current directory.
+- Added exact workflow-policy validation and 17 hostile mutations covering
+  triggers, credentials, actions, permissions, runner, timeout, image digest,
+  failure handling, runtime proof, dependency installation, and commands.
 
 ## 2026-06-09
 

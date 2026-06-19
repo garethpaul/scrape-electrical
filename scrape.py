@@ -3,8 +3,89 @@ from __future__ import print_function
 import argparse
 import re
 import sys
-import urllib2
-from urlparse import urljoin, urlparse
+
+try:
+    import urllib2
+    from urlparse import urljoin, urlparse
+except ImportError:
+    import urllib.error
+    import urllib.request as urllib2
+    from urllib.parse import urljoin, urlparse
+
+    urllib2.HTTPError = urllib.error.HTTPError
+
+try:
+    INTEGER_TYPES = (int, long)
+except NameError:
+    INTEGER_TYPES = (int,)
+
+
+DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+
+
+class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):
+    max_repeats = 2
+    max_redirections = 5
+
+    def __init__(self, source_url):
+        parsed_source = urlparse(source_url)
+        self.source_scheme = parsed_source.scheme
+        self.source_host = parsed_source.hostname.lower()
+        self.source_port = parsed_source.port or self.default_port(self.source_scheme)
+        self.safe_source_url = '%s://%s/' % (parsed_source.scheme, self.source_host)
+
+    def default_port(self, scheme):
+        return 443 if scheme == 'https' else 80
+
+    def rejected_redirect(self, code, headers, fp):
+        error = urllib2.HTTPError(
+            self.safe_source_url,
+            code,
+            'redirect target violates same-host policy',
+            headers,
+            fp
+        )
+        try:
+            error.close()
+        except BaseException:
+            pass
+        return error
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        try:
+            raw_redirect = urlparse(newurl)
+            current_scheme = urlparse(req.get_full_url()).scheme
+            redirect_url = urljoin(req.get_full_url(), newurl)
+            parsed_redirect = urlparse(redirect_url)
+            redirect_host = parsed_redirect.hostname
+            redirect_port = parsed_redirect.port or self.default_port(parsed_redirect.scheme)
+        except ValueError:
+            raise self.rejected_redirect(code, headers, fp)
+
+        same_origin = (
+            parsed_redirect.scheme == self.source_scheme and
+            redirect_port == self.source_port
+        )
+        standard_https_upgrade = (
+            self.source_scheme == 'http' and self.source_port == 80 and
+            parsed_redirect.scheme == 'https' and redirect_port == 443
+        )
+        allowed = (
+            not (raw_redirect.scheme and not raw_redirect.netloc) and
+            parsed_redirect.scheme in ('http', 'https') and
+            not (current_scheme == 'https' and parsed_redirect.scheme == 'http') and
+            redirect_host is not None and
+            redirect_host.lower() == self.source_host and
+            (same_origin or standard_https_upgrade) and
+            parsed_redirect.username is None and
+            parsed_redirect.password is None
+        )
+        if not allowed:
+            raise self.rejected_redirect(code, headers, fp)
+
+        return urllib2.HTTPRedirectHandler.redirect_request(
+            self, req, fp, code, msg, headers, redirect_url
+        )
 
 
 class Database(object):
@@ -25,7 +106,18 @@ class Database(object):
             host=self.dbhost,
             dbname=self.dbname
         )
-        self.cur = self.conn.cursor()
+        try:
+            self.cur = self.conn.cursor()
+        except BaseException:
+            self._close_connection_after_cursor_failure()
+            raise
+
+    def _close_connection_after_cursor_failure(self):
+        # A separate frame preserves the active exception on Python 2.
+        try:
+            self.conn.close()
+        except BaseException:
+            pass
 
     def close(self):
         # Over psycopg2 must be closed
@@ -37,7 +129,8 @@ class Database(object):
     def insert(self, name, link, price):
         table_name = self.safe_table_name()
         self.cur.execute(
-            "INSERT INTO %s (p_name, p_link, p_price) VALUES (%%s, %%s, %%s)" % table_name,
+            # table_name is validated by safe_table_name; values use DB-API parameters.
+            "INSERT INTO %s (p_name, p_link, p_price) VALUES (%%s, %%s, %%s)" % table_name,  # nosec B608
             (name, link, self.normalized_price(price))
         )
         self.conn.commit()
@@ -66,35 +159,96 @@ class Product(object):
     """
     The product class is for handling products to find and insert
     """
-    def __init__(self, database, url, timeout=30):
+    def __init__(self, database, url, timeout=30,
+                 max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES):
         # Set variables for class product.
         self.database = database
         self.url = self.normalized_source_url(url)
-        if timeout <= 0:
+        if (isinstance(timeout, bool) or
+                not isinstance(timeout, INTEGER_TYPES + (float,)) or
+                timeout <= 0 or timeout != timeout or
+                timeout == float('inf')):
             raise ValueError('timeout must be positive')
         self.timeout = timeout
+        if (isinstance(max_response_bytes, bool) or
+                not isinstance(max_response_bytes, INTEGER_TYPES) or
+                max_response_bytes <= 0):
+            raise ValueError('maximum response size must be a positive integer')
+        self.max_response_bytes = max_response_bytes
 
     def normalized_source_url(self, url):
         if not url or not url.strip():
             raise ValueError('source URL must use http or https and include a host')
 
         source_url = url.strip()
-        parsed_url = urlparse(source_url)
-        if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
+        try:
+            parsed_url = urlparse(source_url)
+            source_host = parsed_url.hostname
+            source_port = parsed_url.port
+        except ValueError:
             raise ValueError('source URL must use http or https and include a host')
+        source_authority = parsed_url.netloc.rsplit('@', 1)[-1]
+        explicit_port = re.search(r'(?:\]|[^:]):([^:]*)$', source_authority)
+        if explicit_port is not None and source_port is None:
+            raise ValueError('source URL must use http or https and include a host')
+        if (parsed_url.scheme not in ('http', 'https') or
+                not parsed_url.netloc or not source_host):
+            raise ValueError('source URL must use http or https and include a host')
+        if parsed_url.username is not None or parsed_url.password is not None:
+            raise ValueError('source URL must not include credentials')
 
         return source_url
 
     def read(self):
-        opener = urllib2.build_opener()
+        opener = urllib2.build_opener(SameHostRedirectHandler(self.url))
         response = opener.open(self.build_request(), timeout=self.timeout)
         try:
-            return response.read()
+            headers = response.info()
+            for content_encoding in self.header_values(
+                    headers, 'Content-Encoding'):
+                declared_encodings = content_encoding.split(',')
+                if any(encoding.strip().lower() not in ('', 'identity')
+                       for encoding in declared_encodings):
+                    raise ValueError('response content encoding must be identity')
+            for content_type in self.header_values(headers, 'Content-Type'):
+                media_type = content_type.split(';', 1)[0].strip().lower()
+                if media_type not in ('', 'text/html', 'application/xhtml+xml'):
+                    raise ValueError('response content type must be HTML')
+
+            chunks = []
+            remaining = self.max_response_bytes + 1
+            while remaining > 0:
+                chunk = response.read(remaining)
+                if not chunk:
+                    if not chunks:
+                        return chunk
+                    break
+                if len(chunk) > remaining:
+                    chunk = chunk[:remaining]
+                chunks.append(chunk)
+                remaining -= len(chunk)
+
+            body = chunks[0][:0].join(chunks)
+            if len(body) > self.max_response_bytes:
+                raise ValueError(
+                    'response body exceeds maximum of %d bytes' % self.max_response_bytes
+                )
+            return body
         finally:
             response.close()
 
+    def header_values(self, headers, name):
+        if hasattr(headers, 'get_all'):
+            return headers.get_all(name, [])
+        if hasattr(headers, 'getheaders'):
+            return headers.getheaders(name) or []
+        return [headers.get(name) or '']
+
     def build_request(self):
-        return urllib2.Request(self.url)
+        request = urllib2.Request(self.url)
+        request.add_header('Accept', 'text/html, application/xhtml+xml')
+        request.add_header('Accept-Encoding', 'identity')
+        return request
 
     def find(self):
         # find products via self.url and argument --url 
@@ -145,9 +299,18 @@ class Product(object):
         if not href or not href.strip():
             return None
 
-        link_url = urljoin(self.url, href.strip())
-        parsed_url = urlparse(link_url)
-        if parsed_url.scheme not in ('http', 'https') or not parsed_url.netloc:
+        try:
+            link_url = urljoin(self.url, href.strip())
+            parsed_url = urlparse(link_url)
+            # These properties reject malformed IPv6 hosts and port values.
+            link_host = parsed_url.hostname
+            parsed_url.port
+        except ValueError:
+            return None
+        if (parsed_url.scheme not in ('http', 'https') or
+                not parsed_url.netloc or link_host is None):
+            return None
+        if parsed_url.username is not None or parsed_url.password is not None:
             return None
 
         return link_url
@@ -163,6 +326,12 @@ def build_arg_parser():
         help='print parsed rows instead of writing to PostgreSQL'
     )
     parser.add_argument('--timeout', type=float, default=30, help='network timeout in seconds')
+    parser.add_argument(
+        '--max-response-bytes',
+        type=int,
+        default=DEFAULT_MAX_RESPONSE_BYTES,
+        help='maximum source response size in bytes'
+    )
     parser.add_argument('--db-name', dest='db_name', help='PostgreSQL database name')
     parser.add_argument('--db-user', dest='db_user', help='PostgreSQL user')
     parser.add_argument('--db-password', dest='db_password', help='PostgreSQL password')
@@ -208,14 +377,37 @@ def run_cli(argv=None):
     except ValueError as error:
         parser.error(str(error))
 
-    main(database, options.url, timeout=options.timeout)
+    main(
+        database,
+        options.url,
+        timeout=options.timeout,
+        max_response_bytes=options.max_response_bytes
+    )
 
 
-def main(database, url, timeout=30):
+def main(database, url, timeout=30,
+         max_response_bytes=DEFAULT_MAX_RESPONSE_BYTES):
     # put database with Product and include the url
-    p = Product(database, url, timeout=timeout)
+    try:
+        p = Product(
+            database,
+            url,
+            timeout=timeout,
+            max_response_bytes=max_response_bytes
+        )
+    except BaseException:
+        _close_database_after_product_construction_failure(database)
+        raise
     # find products and place them in a database
     p.find()
+
+
+def _close_database_after_product_construction_failure(database):
+    # A separate frame preserves the active exception on Python 2.
+    try:
+        database.close()
+    except BaseException:
+        pass
 
 
 if __name__ == '__main__':

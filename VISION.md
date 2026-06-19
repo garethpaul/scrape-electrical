@@ -18,18 +18,35 @@ Priority:
 - Keep database credentials passed by the operator, not committed
 - Avoid encouraging bypass headers or aggressive scraping
 - Bound live network reads so stalled targets do not hang indefinitely
+- Keep a configurable response body size limit ahead of HTML parsing
+- Keep bounded response reads complete across legal short chunks
+- Require identity content encoding and reject other encodings before body reads
+- Reject explicit non-HTML content types before body reads while retaining
+  compatibility with source pages that omit the header
 - Close source-page responses on successful and failed body reads
 - Require source page URLs to use HTTP(S) before network reads
+- Reject malformed source URL authorities before opener construction
+- Scraper timeouts must be finite positive numbers before network setup.
+- Reject source URL credentials before request construction
+- Keep a same-host redirect boundary ahead of follow-up network requests
+- Close rejected redirect response bodies before raising sanitized errors
+- Keep an explicit redirect hop limit on same-host chains and loops
 - Skip incomplete product cards instead of aborting the scrape
 - Resolve product links against the source URL and reject non-web schemes
+- Reject product link credentials parsed from remote markup before persistence
+- Reject malformed product links without aborting later safe product rows
 - Pass database connection fields as structured driver parameters
 - Require a dry-run or complete database credentials for command-line runs
 - Keep database cursor cleanup ordered before connection teardown
 - Keep connection cleanup attempted when cursor cleanup fails
+- Preserve the Product construction primary error when database cleanup also
+  fails or construction is interrupted
 - Keep completed maintenance plans under `docs/plans`
 - Keep verification runs from leaving Python bytecode in the checkout
-- Keep GitHub Actions running the complete offline Python 2 scraper suite
-- Treat Python 2, raw SQL, and incomplete CLI wiring as legacy risks
+- Keep GitHub Actions running the complete offline scraper suite under Python 2.7 and Python 3.12 with credential-free checkout and no live dependency installation
+- Keep hosted workflow policy protected by dependency-free hostile mutations
+- Treat Python 2-only deployment, raw SQL, and incomplete CLI wiring as legacy
+  risks
 
 Next priorities:
 

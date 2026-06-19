@@ -22,12 +22,19 @@ access, or a PostgreSQL service.
 
 - Changed CI to the official Python 2.7.18 image pinned by digest.
 - Pinned checkout to the reviewed v6.0.3 commit on Ubuntu 24.04.
+- Disabled persisted checkout credentials and limited permissions to read-only
+  repository contents.
 - Made Python 2 syntax and all 19 tests mandatory for `make check`.
 - Removed setup-python and all unavailable-runtime success paths.
 - Anchored Makefile commands to the repository root.
-- Extended the checker to enforce the runtime, action, and no-skip contracts.
+- Extended the checker to enforce the exact runtime, action, credential,
+  permission, command, no-dependency, and no-skip contracts.
+- Added hostile mutation tests for duplicate, relocated, or contradictory
+  credentials and other workflow-policy drift.
 
 ## Verification
 
+- `python2 -B scripts/test_workflow_contract.py`
+- `make contract-test`
 - `docker run --rm -v "$PWD:/work:ro" -w /work python:2.7.18@sha256:c934af72b8bd03b9804d5bde2569c320926e70392d708d113a2e71bcf98c8a20 make check`
 - `git diff --check`

@@ -19,7 +19,7 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `requirements.txt` - optional scraper/database dependencies
 - `scripts` - documentation-plan validators
 - `scrape.py` - scraper and PostgreSQL insert implementation
-- `tests` - Python 2 parser and database unit tests
+- `tests` - Python 2 and Python 3 parser and database unit tests
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
 
@@ -35,7 +35,7 @@ Additional scan context:
 ### Prerequisites
 
 - Git
-- Python 2.7
+- Python 2.7 or Python 3.12 for offline verification
 - PostgreSQL client access for live database writes
 
 ### Setup
@@ -43,7 +43,7 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/scrape-electrical.git
 cd scrape-electrical
-python2 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
@@ -53,13 +53,13 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Preview parsed rows without PostgreSQL writes:
 
 ```bash
-python2 scrape.py --url https://example.test/products --dry-run
+python3 scrape.py --url https://example.test/products --dry-run
 ```
 
 - For live writes, pass all database fields explicitly:
 
 ```bash
-python2 scrape.py --url https://example.test/products \
+python3 scrape.py --url https://example.test/products \
   --db-name products_db \
   --db-user scraper \
   --db-password "$SCRAPE_DB_PASSWORD" \
@@ -77,35 +77,69 @@ python2 scrape.py --url https://example.test/products \
   tracking headers.
 - Live fetches use a bounded default timeout so stalled requests do not hang
   forever.
+- Scraper timeouts must be finite positive numbers before network setup.
+- Live fetches also enforce a 5 MiB response body size limit before HTML
+  parsing; override it with `--max-response-bytes` for a reviewed target. The
+  bounded response reads consume short chunks through EOF so fragmented
+  bodies cannot be silently truncated or escape the size check.
+- Source requests require identity content encoding, and responses that declare
+  any other content encoding are rejected before body reads.
+- Source requests advertise HTML and reject explicit non-HTML content types
+  before body reads; missing `Content-Type` remains accepted for legacy sites.
 - Source page URLs must use `http` or `https` and include a host before the
-  scraper opens them.
+  scraper opens them; malformed source URL authorities are rejected before
+  opener construction.
+- Embedded source URL credentials are rejected before the scraper builds a
+  request.
+- Source-page redirects use a same-host redirect boundary: relative paths and
+  same-host HTTPS upgrades are allowed, while cross-host, non-web, hostless,
+  alternate-port, downgrade, and credential-bearing targets are rejected before
+  the follow-up request.
+- Rejected redirect response bodies are closed before the sanitized redirect
+  error is raised, so blocked redirects do not leak response resources.
+- The redirect hop limit permits at most five total redirects and two repeats
+  of the same target before the runtime aborts the request chain.
 - Product cards without usable links are skipped rather than aborting the
   scrape.
-- Parsed product links are resolved against the source URL and must use
-  `http` or `https` before they are inserted.
+- Parsed product links are resolved against the source URL, must use `http` or
+  `https`, must not contain product link credentials, and malformed product
+  links are skipped before insertion without stopping later safe rows.
 - Database connection fields are passed to `psycopg2` as structured keyword
   arguments instead of an interpolated connection string.
 
 ## Testing and Verification
 
-- `make check` runs Python 2 syntax checks plus mocked database and parser
-  unit tests.
-- `make check` requires Python 2 and runs the documentation, syntax, and all 19
-  mocked database and parser tests without successful skip paths.
-- GitHub Actions runs that full offline gate in a digest-pinned Python 2.7.18
-  container with read-only permissions and no live scraper/database packages.
+- `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
+  plus all 51 mocked database and parser tests under Python 2.7 and Python 3.12.
+- Both gates run documentation and workflow-policy checks without successful
+  skip paths or live scraper/database dependencies.
+- GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
+  container and an Ubuntu Python 3.12 lane, with credential-free pinned
+  checkout and read-only permissions.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
-- Parser tests also cover non-web link rejection and relative product-link
-  normalization.
-- Parser tests also cover source page URL scheme validation and whitespace
-  normalization.
+- Parser tests also cover non-web, credential-bearing, and malformed product
+  links plus relative product-link normalization and continuation after
+  rejected rows.
+- Parser tests also cover source page URL scheme, malformed authority, explicit
+  port, and whitespace normalization.
 - Network tests require HTTP responses to close after successful and failed
   body reads.
+- Network tests require rejected redirect response bodies to close before the
+  sanitized redirect error escapes.
+- Network tests cover the exact response body size limit, oversized rejection,
+  configured read size, and response closure.
+- Network tests cover HTML/XHTML response declarations, missing legacy media
+  types, and pre-read rejection of explicit non-HTML content types.
+- Redirect tests lock the five-hop and two-repeat budgets.
 - Database tests cover parameterized inserts and structured `psycopg2`
   connection parameters without requiring a live PostgreSQL server.
-- Database tests also cover cursor-first cleanup and connection close attempts
-  when cursor cleanup fails.
+- Database tests also cover cursor-first cleanup, connection close attempts
+  when cursor cleanup fails, connection cleanup when cursor construction fails,
+  primary-error preservation when that cleanup also fails, and cleanup when
+  product validation rejects input after database creation.
+- Product construction primary error preservation keeps validation and
+  interruption failures authoritative when database cleanup also fails.
 - CLI tests cover dry-run parsing, dry-run output, complete credential
   requirements for live writes, and explicit live database construction.
 - `make check` runs with Python bytecode disabled and fails if `.pyc` or `.pyo`
@@ -137,6 +171,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   handling.
 - See `docs/plans/2026-06-09-product-link-scheme-guard.md` for product-link
   scheme validation and relative-link normalization.
+- See `docs/plans/2026-06-14-product-link-userinfo-guard.md` for rejecting
+  credential-bearing product links parsed from remote markup.
 - See `docs/plans/2026-06-09-structured-db-connect.md` for structured
   database connection parameters.
 - See `docs/plans/2026-06-09-database-close-order.md` for cursor-first
@@ -155,6 +191,23 @@ When the required SDK or runtime is unavailable, use static checks and source re
   Python 2.7 offline test boundary.
 - See `docs/plans/2026-06-10-http-response-cleanup.md` for scraper response
   cleanup on successful and failed reads.
+- See `docs/plans/2026-06-12-response-body-size-limit.md` for the bounded
+  response memory contract.
+- See `docs/plans/2026-06-12-same-host-redirect-boundary.md` for pre-request
+  redirect target validation and its explicit DNS-rebinding limitation.
+- See `docs/plans/2026-06-14-make-root-override-protection.md` for the
+  caller-resistant, location-independent offline verification root.
+- See `docs/plans/2026-06-15-python3-compatibility.md` for the Python 2.7 and
+  Python 3.12 offline compatibility boundary.
+- See `docs/plans/2026-06-16-content-type-boundary.md` for the declared HTML
+  response media-type boundary.
+- See `docs/plans/2026-06-16-product-construction-database-cleanup.md` for
+  cleanup when source or network-limit validation fails after database setup.
+- See `docs/plans/2026-06-17-database-cursor-construction-cleanup.md` for
+  connection cleanup when cursor construction prevents database setup from
+  completing.
+- See `docs/plans/2026-06-17-product-construction-primary-error.md` for cleanup
+  that preserves the Product construction primary error over close failures.
 
 ## Contributing
 

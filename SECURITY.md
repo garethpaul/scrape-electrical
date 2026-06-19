@@ -38,15 +38,47 @@ For web services, APIs, sockets, or scraping workflows, prioritize reports invol
 Product parsing rejects non-web link schemes. It normalizes relative product links
 against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
+Remote product link credentials are rejected before database writes or dry-run
+output.
+Remote malformed product links are rejected at the row boundary without being
+logged and without stopping later safe product rows.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
+Scraper timeouts must be finite positive numbers before network setup.
+Malformed source URL authorities, including invalid explicit ports, are
+rejected before opener construction without echoing the supplied URL.
+The scraper rejects source URL credentials before request construction so
+userinfo cannot be carried into an initial fetch.
+The same-host redirect boundary allows relative and same-host HTTPS redirects
+but rejects cross-host, alternate-port, HTTPS-to-HTTP downgrade, non-web,
+hostless, and credential-bearing targets before the follow-up request. It does
+not claim DNS-rebinding protection.
+Rejected redirect response bodies are closed before the sanitized redirect
+error escapes, avoiding resource leaks when a target violates that policy.
+The explicit redirect hop limit permits five total redirects and two repeats of
+the same target, bounding same-host loops and long chains.
 HTTP responses must close after body reads, including parser or transport
 failure paths, so repeated scraping does not leak network resources.
-GitHub Actions runs the complete offline gate in a digest-pinned Python 2.7.18
-container. It installs no live scraping or database dependencies and does not
-receive database credentials.
-CI actions stay pinned by commit and run with read-only repository contents
-permission.
+The default 5 MiB response body size limit rejects oversized pages before HTML
+parsing while still closing the response; increases require explicit CLI input.
+Bounded response reads continue through legal short response chunks until EOF or
+one byte beyond the limit, preventing fragmented bodies from being silently
+truncated or escaping complete size enforcement.
+Source requests require identity content encoding, and responses that declare
+any other content encoding are rejected before body reads.
+Source requests advertise HTML, and explicit non-HTML content types are
+rejected before body reads without echoing the supplied header value. Missing
+`Content-Type` remains accepted for historical endpoint compatibility.
+Product construction primary error preservation keeps validation and
+interruption failures authoritative when database cleanup also fails, avoiding
+misleading startup diagnostics while still attempting resource cleanup.
+GitHub Actions runs the complete offline gate under Python 2.7 and Python 3.12,
+using a digest-pinned legacy container and an immutable setup action. Neither
+lane installs live scraping or database dependencies or receives database
+credentials.
+CI checkout credentials stay disabled, actions remain pinned by commit, and
+permissions remain read-only. Hostile mutations reject contradictory
+credentials, dependency installation, and other workflow-policy drift.
 
 ## Dependency and Supply Chain Security
 
