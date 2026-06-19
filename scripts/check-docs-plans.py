@@ -20,6 +20,9 @@ HOSTED_LEGACY_PLAN = os.path.join(DOCS_PLANS, '2026-06-10-hosted-legacy-validati
 RESPONSE_BODY_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-response-body-size-limit.md')
 REDIRECT_BOUNDARY_PLAN = os.path.join(DOCS_PLANS, '2026-06-12-same-host-redirect-boundary.md')
 REDIRECT_HOP_LIMIT_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-redirect-hop-limit.md')
+REDIRECT_REJECTION_CLEANUP_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-19-rejected-redirect-response-cleanup.md'
+)
 SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-guard.md')
 MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protection.md')
 PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-userinfo-guard.md')
@@ -64,6 +67,7 @@ for required_path in (
         RESPONSE_BODY_LIMIT_PLAN,
         REDIRECT_BOUNDARY_PLAN,
         REDIRECT_HOP_LIMIT_PLAN,
+        REDIRECT_REJECTION_CLEANUP_PLAN,
         SOURCE_USERINFO_PLAN,
         MAKE_ROOT_PLAN,
         PRODUCT_LINK_USERINFO_PLAN,
@@ -249,6 +253,8 @@ for phrase in (
         'self.source_port = parsed_source.port or self.default_port(self.source_scheme)',
         'def default_port(self, scheme):',
         'def rejected_redirect(self, code, headers, fp):',
+        'error = urllib2.HTTPError(',
+        'error.close()',
         'raise self.rejected_redirect(code, headers, fp)',
         'raw_redirect = urlparse(newurl)',
         'current_scheme = urlparse(req.get_full_url()).scheme',
@@ -344,9 +350,15 @@ for test_name in (
         'test_redirect_handler_has_explicit_hop_limits',
         'test_redirect_handler_allows_same_host_relative_redirect',
         'test_redirect_handler_allows_same_host_https_upgrade',
-        'test_redirect_handler_rejects_unsafe_targets_without_echoing_them'):
+        'test_redirect_handler_rejects_unsafe_targets_without_echoing_them',
+        'test_redirect_handler_closes_rejected_response_body'):
     if test_name not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % test_name)
+for phrase in (
+        'class FakeRedirectResponse(object):',
+        'self.assertEqual(1, redirect_response.close_count)'):
+    if phrase not in test_source:
+        failures.append('tests/test_scrape.py must retain rejected redirect cleanup coverage %r' % phrase)
 if 'test_product_rejects_source_url_credentials_without_echoing_them' not in test_source:
     failures.append('tests/test_scrape.py must retain source URL credential rejection coverage')
 if 'test_product_rejects_malformed_source_authorities_without_echoing_them' not in test_source:
@@ -444,6 +456,12 @@ if ('same-host redirect' not in readme or
         'same-host redirect' not in security or
         'same-host redirect' not in changes):
     failures.append('docs must describe the same-host redirect boundary')
+if ('rejected redirect response bodies' not in readme or
+        'Rejected redirect response bodies' not in security or
+        'rejected redirect response bodies' not in changes.lower()):
+    failures.append('docs must describe rejected redirect response body cleanup')
+if 'Close rejected redirect response bodies' not in vision:
+    failures.append('VISION.md must describe rejected redirect response body cleanup')
 if ('redirect hop limit' not in readme or
         'redirect hop limit' not in vision or
         'redirect hop limit' not in security or
@@ -465,8 +483,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 50' not in readme:
-    failures.append('README.md must record the complete 50-test offline suite')
+if 'all 51' not in readme:
+    failures.append('README.md must record the complete 51-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -534,6 +552,19 @@ for evidence in (
     if evidence not in timeout_validation_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(TIMEOUT_VALIDATION_PLAN), evidence))
+
+redirect_rejection_cleanup_plan = read(REDIRECT_REJECTION_CLEANUP_PLAN) if os.path.isfile(
+    REDIRECT_REJECTION_CLEANUP_PLAN
+) else ''
+for evidence in (
+        'Status: Completed',
+        '51 tests passed under Python 3',
+        'make check PYTHON=python3 passed',
+        'redirect response cleanup mutation was rejected',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in redirect_rejection_cleanup_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(REDIRECT_REJECTION_CLEANUP_PLAN), evidence))
 
 python3_compatibility_plan = read(PYTHON3_COMPATIBILITY_PLAN) if os.path.isfile(PYTHON3_COMPATIBILITY_PLAN) else ''
 for evidence in (

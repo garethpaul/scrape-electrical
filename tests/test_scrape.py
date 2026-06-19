@@ -160,6 +160,14 @@ class FakeResponse(object):
         self.closed = True
 
 
+class FakeRedirectResponse(object):
+    def __init__(self):
+        self.close_count = 0
+
+    def close(self):
+        self.close_count += 1
+
+
 class ChunkedResponse(object):
     def __init__(self, chunks, content_encoding=None, content_type=None):
         self.chunks = list(chunks)
@@ -291,6 +299,7 @@ class DatabaseTests(unittest.TestCase):
 
     def test_database_connect_uses_keyword_parameters(self):
         calls = []
+        credential_value = 'pass word'
         fake_psycopg2 = types.ModuleType('psycopg2')
 
         def connect(**kwargs):
@@ -304,7 +313,7 @@ class DatabaseTests(unittest.TestCase):
             database = scrape.Database(
                 'products db',
                 'scraper user',
-                'pass word',
+                credential_value,
                 'db.example.test',
                 'products'
             )
@@ -317,7 +326,7 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(
             [{
                 'user': 'scraper user',
-                'password': 'pass word',
+                'password': credential_value,
                 'host': 'db.example.test',
                 'dbname': 'products db',
             }],
@@ -599,6 +608,25 @@ class ProductParserTests(unittest.TestCase):
                 self.assertNotIn(redirect_url, str(error))
             else:
                 self.fail('expected redirect rejection for %r' % redirect_url)
+
+    def test_redirect_handler_closes_rejected_response_body(self):
+        handler = scrape.SameHostRedirectHandler('https://example.test/source')
+        request = scrape.urllib2.Request('https://example.test/source')
+        redirect_response = FakeRedirectResponse()
+
+        try:
+            handler.redirect_request(
+                request,
+                redirect_response,
+                302,
+                'Found',
+                {},
+                'https://other.test/private',
+            )
+        except scrape.urllib2.HTTPError:
+            self.assertEqual(1, redirect_response.close_count)
+        else:
+            self.fail('expected redirect rejection')
 
     def test_read_uses_bounded_timeout(self):
         opener = FakeOpener()

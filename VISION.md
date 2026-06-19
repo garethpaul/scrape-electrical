@@ -29,6 +29,7 @@ Priority:
 - Scraper timeouts must be finite positive numbers before network setup.
 - Reject source URL credentials before request construction
 - Keep a same-host redirect boundary ahead of follow-up network requests
+- Close rejected redirect response bodies before raising sanitized errors
 - Keep an explicit redirect hop limit on same-host chains and loops
 - Skip incomplete product cards instead of aborting the scrape
 - Resolve product links against the source URL and reject non-web schemes

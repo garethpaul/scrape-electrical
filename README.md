@@ -95,6 +95,8 @@ python3 scrape.py --url https://example.test/products \
   same-host HTTPS upgrades are allowed, while cross-host, non-web, hostless,
   alternate-port, downgrade, and credential-bearing targets are rejected before
   the follow-up request.
+- Rejected redirect response bodies are closed before the sanitized redirect
+  error is raised, so blocked redirects do not leak response resources.
 - The redirect hop limit permits at most five total redirects and two repeats
   of the same target before the runtime aborts the request chain.
 - Product cards without usable links are skipped rather than aborting the
@@ -108,7 +110,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 50 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 51 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
@@ -123,6 +125,8 @@ python3 scrape.py --url https://example.test/products \
   port, and whitespace normalization.
 - Network tests require HTTP responses to close after successful and failed
   body reads.
+- Network tests require rejected redirect response bodies to close before the
+  sanitized redirect error escapes.
 - Network tests cover the exact response body size limit, oversized rejection,
   configured read size, and response closure.
 - Network tests cover HTML/XHTML response declarations, missing legacy media

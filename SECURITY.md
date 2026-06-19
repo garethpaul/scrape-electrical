@@ -53,6 +53,8 @@ The same-host redirect boundary allows relative and same-host HTTPS redirects
 but rejects cross-host, alternate-port, HTTPS-to-HTTP downgrade, non-web,
 hostless, and credential-bearing targets before the follow-up request. It does
 not claim DNS-rebinding protection.
+Rejected redirect response bodies are closed before the sanitized redirect
+error escapes, avoiding resource leaks when a target violates that policy.
 The explicit redirect hop limit permits five total redirects and two repeats of
 the same target, bounding same-host loops and long chains.
 HTTP responses must close after body reads, including parser or transport

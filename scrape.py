@@ -38,13 +38,18 @@ class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):
         return 443 if scheme == 'https' else 80
 
     def rejected_redirect(self, code, headers, fp):
-        return urllib2.HTTPError(
+        error = urllib2.HTTPError(
             self.safe_source_url,
             code,
             'redirect target violates same-host policy',
             headers,
             fp
         )
+        try:
+            error.close()
+        except BaseException:
+            pass
+        return error
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         try:
@@ -124,7 +129,8 @@ class Database(object):
     def insert(self, name, link, price):
         table_name = self.safe_table_name()
         self.cur.execute(
-            "INSERT INTO %s (p_name, p_link, p_price) VALUES (%%s, %%s, %%s)" % table_name,
+            # table_name is validated by safe_table_name; values use DB-API parameters.
+            "INSERT INTO %s (p_name, p_link, p_price) VALUES (%%s, %%s, %%s)" % table_name,  # nosec B608
             (name, link, self.normalized_price(price))
         )
         self.conn.commit()

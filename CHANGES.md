@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-19
+
+- Closed rejected redirect response bodies before raising sanitized same-host
+  redirect errors, removing Python 3 `ResourceWarning` leakage from blocked
+  redirect paths.
+
 ## 2026-06-17
 
 - Added Product construction primary error preservation so validation and
