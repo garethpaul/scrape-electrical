@@ -167,6 +167,12 @@ class FakeRedirectResponse(object):
     def read(self, size=None):
         return ''
 
+    def readline(self, size=None):
+        return ''
+
+    def readlines(self, hint=None):
+        return []
+
     def close(self):
         self.close_count += 1
 
