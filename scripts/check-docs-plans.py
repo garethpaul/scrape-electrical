@@ -115,7 +115,7 @@ for requirement in validate_workflow(workflow):
     failures.append('GitHub Actions workflow must %s' % requirement)
 
 makefile = read(MAKEFILE) if os.path.isfile(MAKEFILE) else ''
-root_declaration = "override ROOT := $(shell path='$(subst ','\"'\"',$(MAKEFILE_LIST))'; path=$$(printf '%s' \"$$path\" | /usr/bin/sed 's/^ //'); [ -f \"$$path\" ] || exit 1; directory=$$(/usr/bin/dirname -- \"$$path\"); CDPATH= cd -- \"$$directory\" && /bin/pwd -P)"
+root_declaration = "override ROOT := $(shell path='$(subst ','\"'\"',$(MAKEFILE_LIST))'; path=$$(printf '%s' \"$$path\" | /bin/sed 's/^ //'); [ -f \"$$path\" ] || exit 1; directory=$$(/usr/bin/dirname -- \"$$path\"); CDPATH= cd -- \"$$directory\" && /bin/pwd -P)"
 root_assignments = [
     line for line in makefile.splitlines()
     if re.match(r'^(?:override\s+)?ROOT\s*[:?+]?=', line)
