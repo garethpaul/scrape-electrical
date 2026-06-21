@@ -25,6 +25,7 @@ REDIRECT_REJECTION_CLEANUP_PLAN = os.path.join(
 )
 SOURCE_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-13-source-url-userinfo-guard.md')
 MAKE_ROOT_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-make-root-override-protection.md')
+MAKE_AUTHORITY_PLAN = os.path.join(DOCS_PLANS, '2026-06-21-make-authority-isolation.md')
 PRODUCT_LINK_USERINFO_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-product-link-userinfo-guard.md')
 MALFORMED_PRODUCT_LINK_PLAN = os.path.join(DOCS_PLANS, '2026-06-14-malformed-product-link-boundary.md')
 MALFORMED_SOURCE_URL_PLAN = os.path.join(DOCS_PLANS, '2026-06-15-malformed-source-url-boundary.md')
@@ -70,6 +71,7 @@ for required_path in (
         REDIRECT_REJECTION_CLEANUP_PLAN,
         SOURCE_USERINFO_PLAN,
         MAKE_ROOT_PLAN,
+        MAKE_AUTHORITY_PLAN,
         PRODUCT_LINK_USERINFO_PLAN,
         MALFORMED_PRODUCT_LINK_PLAN,
         MALFORMED_SOURCE_URL_PLAN,
@@ -113,24 +115,36 @@ for requirement in validate_workflow(workflow):
     failures.append('GitHub Actions workflow must %s' % requirement)
 
 makefile = read(MAKEFILE) if os.path.isfile(MAKEFILE) else ''
-root_declaration = 'override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))'
+root_declaration = "override ROOT := $(shell sed_path=/usr/bin/sed; [ -x \"$$sed_path\" ] || sed_path=/bin/sed; [ -x \"$$sed_path\" ] || exit 1; path=$$(printf '%s' '$(subst ','\"'\"',$(MAKEFILE_LIST))' | \"$$sed_path\" 's/^ //'); [ -f \"$$path\" ] || exit 1; directory=$${path%/*}; [ \"$$directory\" != \"$$path\" ] || directory=.; CDPATH= cd \"$$directory\" && pwd -P)"
 root_assignments = [
     line for line in makefile.splitlines()
     if re.match(r'^(?:override\s+)?ROOT\s*[:?+]?=', line)
 ]
-if not makefile.startswith(root_declaration + '\n') or root_assignments != [root_declaration]:
-    failures.append('Makefile must define exactly one protected repository-derived ROOT declaration first')
 required_makefile_phrases = (
+    'override SHELL := /bin/sh',
+    'override .SHELLFLAGS := -c',
+    '.SECONDEXPANSION:',
+    '$(error MAKEFILES must be empty; repository verification requires this Makefile to be loaded alone)',
+    'override MAKEFILES :=',
+    '$(error MAKEFILE_LIST must not be overridden)',
     root_declaration,
+    'export ROOT',
+    '$(error repository Makefile path could not be resolved)',
+    '$(error repository Makefile must be loaded alone)',
     'PYTHON ?= python2',
-    '$(PYTHON) -B "$(ROOT)/scripts/check-docs-plans.py"',
-    '$(PYTHON) -B "$(ROOT)/scripts/test_workflow_contract.py"',
-    '$(PYTHON) -B -m unittest discover -s tests',
-    'verify: lint contract-test test',
+    '$(error PYTHON must be exactly python2 or python3)',
+    'override PYTHON := $(value PYTHON)',
+    'override PYTHONDONTWRITEBYTECODE := 1',
+    'export PYTHONDONTWRITEBYTECODE',
+    'root-test:',
+    '\t/bin/sh "$$ROOT/scripts/test-makefile-root.sh"',
+    'verify: root-test lint contract-test test',
 )
+if root_assignments != [root_declaration]:
+    failures.append('Makefile must define exactly one safe repository-derived ROOT declaration')
 for phrase in required_makefile_phrases:
     if phrase not in makefile:
-        failures.append('Makefile must contain %s' % phrase)
+        failures.append('Makefile must preserve verification authority phrase %s' % phrase)
 if 'command -v $(PYTHON)' in makefile or 'unavailable; skipping legacy Python 2 tests' in makefile:
     failures.append('Makefile must require Python 2 scraper verification instead of skipping it')
 
@@ -144,6 +158,30 @@ if os.path.isfile(MAKE_ROOT_PLAN):
             'digest-pinned Python 2.7.18'):
         if evidence not in make_root_plan:
             failures.append('%s must record verification evidence %s' % (rel(MAKE_ROOT_PLAN), evidence))
+
+root_test = os.path.join(ROOT, 'scripts', 'test-makefile-root.sh')
+if os.path.isfile(root_test):
+    root_test_text = read(root_test)
+    for evidence in (
+            '77 executed target/authority cases',
+            '21 invalid-runtime, function, file-list, preload, or multi-Makefile rejections',
+            'PYTHON must be exactly python2 or python3',
+            'MAKEFILE_LIST must not be overridden',
+            'MAKEFILES must be empty'):
+        if evidence not in root_test_text:
+            failures.append('%s must preserve %r' % (rel(root_test), evidence))
+else:
+    failures.append('%s is missing' % rel(root_test))
+
+if os.path.isfile(MAKE_AUTHORITY_PLAN):
+    make_authority_plan = read(MAKE_AUTHORITY_PLAN)
+    for evidence in (
+            'Status: Completed',
+            '`make root-test` passed 77 target/authority cases and 21 rejection cases',
+            '`make check PYTHON=python2` and `make check PYTHON=python3` passed'):
+        if evidence not in make_authority_plan:
+            failures.append('%s must record verification evidence %s' % (
+                rel(MAKE_AUTHORITY_PLAN), evidence))
 
 readme = read(os.path.join(ROOT, 'README.md'))
 if rel(MAKE_ROOT_PLAN) not in readme:

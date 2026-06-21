@@ -13,7 +13,9 @@ ROOT=/tmp check` can redirect those commands away from the checkout.
 
 - **R1:** Prevent command-line and environment values from replacing the
   Makefile-derived repository root.
-- **R2:** Keep the `PYTHON` interpreter configurable.
+- **R2:** Keep `PYTHON` configurable between the supported `python2` and
+  `python3` commands. The Make authority-isolation follow-up rejects all other
+  values without expanding caller-provided Make functions.
 - **R3:** Require the exact protected declaration in the Python 2 checker.
 - **R4:** Prove every public Make alias from the checkout and an external
   directory with a hostile `ROOT` argument.
