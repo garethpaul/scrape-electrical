@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-21
+
+- Isolated Make verification authority while preserving exact `python2` and
+  `python3` selection, with 77 successful target/authority cases and 20
+  rejected runtime, function, preload, and Makefile-list cases.
+
 ## 2026-06-19
 
 - Closed rejected redirect response bodies before raising sanitized same-host

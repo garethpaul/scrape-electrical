@@ -144,6 +144,9 @@ python3 scrape.py --url https://example.test/products \
   requirements for live writes, and explicit live database construction.
 - `make check` runs with Python bytecode disabled and fails if `.pyc` or `.pyo`
   files are present in the checkout.
+- `make root-test` proves every public target accepts only the supported
+  `python2` or `python3` selectors, keeps shell and bytecode policy under
+  repository control, and rejects preload and Makefile-list overrides.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -197,6 +200,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
   redirect target validation and its explicit DNS-rebinding limitation.
 - See `docs/plans/2026-06-14-make-root-override-protection.md` for the
   caller-resistant, location-independent offline verification root.
+- See `docs/plans/2026-06-21-make-authority-isolation.md` for constrained
+  dual-runtime Make authority and hostile-input regression coverage.
 - See `docs/plans/2026-06-15-python3-compatibility.md` for the Python 2.7 and
   Python 3.12 offline compatibility boundary.
 - See `docs/plans/2026-06-16-content-type-boundary.md` for the declared HTML
