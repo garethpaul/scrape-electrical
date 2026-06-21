@@ -3,8 +3,11 @@
 ## 2026-06-21
 
 - Isolated Make verification authority while preserving exact `python2` and
-  `python3` selection, with 77 successful target/authority cases and 20
+  `python3` selection, with 77 successful target/authority cases and 21
   rejected runtime, function, preload, and Makefile-list cases.
+- Added a deferred final-file-set guard so a later `-f` Makefile cannot replace
+  a public target, selected `sed` only from trusted fixed locations, and removed
+  the fixed `dirname` dependency from root resolution.
 
 ## 2026-06-19
 

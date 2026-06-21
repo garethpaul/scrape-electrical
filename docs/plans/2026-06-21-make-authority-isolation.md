@@ -20,17 +20,19 @@ because CI intentionally verifies the offline suite on both Python 2 and 3.
 
 ## Implementation
 
-- Hardened Make authority before target definitions are evaluated.
+- Hardened Make authority during parsing and again after the final Makefile set
+  is known, before any public target can run.
 - Added a dual-runtime `root-test` checkout with spaces, quotes, and
   command-substitution syntax in its path.
-- Covered seven public targets across eleven successful authority modes and 20
+- Covered seven public targets across eleven successful authority modes and 21
   rejected runtime, function, file-list, preload, and multi-Makefile cases.
 - Left scraper, parser, network, database, workflow, and dependency behavior
   unchanged.
 
 ## Verification
 
-- `make root-test` passed 77 target/authority cases and 20 rejection cases.
+- `make root-test` passed 77 target/authority cases and 21 rejection cases,
+  including extra `-f` inputs before and after the repository Makefile.
 - `make check PYTHON=python2` and `make check PYTHON=python3` passed from the
   repository and through an absolute Makefile path.
 - Python and shell syntax checks, bytecode screening, `git diff --check`, and

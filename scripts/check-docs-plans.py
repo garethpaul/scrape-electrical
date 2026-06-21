@@ -115,7 +115,7 @@ for requirement in validate_workflow(workflow):
     failures.append('GitHub Actions workflow must %s' % requirement)
 
 makefile = read(MAKEFILE) if os.path.isfile(MAKEFILE) else ''
-root_declaration = "override ROOT := $(shell path='$(subst ','\"'\"',$(MAKEFILE_LIST))'; path=$$(printf '%s' \"$$path\" | /bin/sed 's/^ //'); [ -f \"$$path\" ] || exit 1; directory=$$(/usr/bin/dirname -- \"$$path\"); CDPATH= cd -- \"$$directory\" && /bin/pwd -P)"
+root_declaration = "override ROOT := $(shell sed_path=/usr/bin/sed; [ -x \"$$sed_path\" ] || sed_path=/bin/sed; [ -x \"$$sed_path\" ] || exit 1; path=$$(printf '%s' '$(subst ','\"'\"',$(MAKEFILE_LIST))' | \"$$sed_path\" 's/^ //'); [ -f \"$$path\" ] || exit 1; directory=$${path%/*}; [ \"$$directory\" != \"$$path\" ] || directory=.; CDPATH= cd \"$$directory\" && pwd -P)"
 root_assignments = [
     line for line in makefile.splitlines()
     if re.match(r'^(?:override\s+)?ROOT\s*[:?+]?=', line)
@@ -123,12 +123,14 @@ root_assignments = [
 required_makefile_phrases = (
     'override SHELL := /bin/sh',
     'override .SHELLFLAGS := -c',
+    '.SECONDEXPANSION:',
     '$(error MAKEFILES must be empty; repository verification requires this Makefile to be loaded alone)',
     'override MAKEFILES :=',
     '$(error MAKEFILE_LIST must not be overridden)',
     root_declaration,
     'export ROOT',
     '$(error repository Makefile path could not be resolved)',
+    '$(error repository Makefile must be loaded alone)',
     'PYTHON ?= python2',
     '$(error PYTHON must be exactly python2 or python3)',
     'override PYTHON := $(value PYTHON)',
@@ -162,7 +164,7 @@ if os.path.isfile(root_test):
     root_test_text = read(root_test)
     for evidence in (
             '77 executed target/authority cases',
-            '20 invalid-runtime, function, file-list, preload, or multi-Makefile rejections',
+            '21 invalid-runtime, function, file-list, preload, or multi-Makefile rejections',
             'PYTHON must be exactly python2 or python3',
             'MAKEFILE_LIST must not be overridden',
             'MAKEFILES must be empty'):
@@ -175,7 +177,7 @@ if os.path.isfile(MAKE_AUTHORITY_PLAN):
     make_authority_plan = read(MAKE_AUTHORITY_PLAN)
     for evidence in (
             'Status: Completed',
-            '`make root-test` passed 77 target/authority cases and 20 rejection cases',
+            '`make root-test` passed 77 target/authority cases and 21 rejection cases',
             '`make check PYTHON=python2` and `make check PYTHON=python3` passed'):
         if evidence not in make_authority_plan:
             failures.append('%s must record verification evidence %s' % (

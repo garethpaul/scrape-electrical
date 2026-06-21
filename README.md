@@ -146,7 +146,8 @@ python3 scrape.py --url https://example.test/products \
   files are present in the checkout.
 - `make root-test` proves every public target accepts only the supported
   `python2` or `python3` selectors, keeps shell and bytecode policy under
-  repository control, and rejects preload and Makefile-list overrides.
+  repository control, and rejects preload and extra Makefiles before or after
+  the repository Makefile.
 - `make check` also requires completed canonical plans under `docs/plans`.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

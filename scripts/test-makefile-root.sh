@@ -159,6 +159,15 @@ if (cd "$CONTROL_DIR" && MAKEFILES="$PRELOADED" /usr/bin/make --no-print-directo
 grep -Fq "MAKEFILES must be empty" "$TEMP_ROOT/preloaded.out"
 EARLIER="$TEMP_ROOT/earlier.mk"
 printf '%s\n' '# earlier' >"$EARLIER"
-if (cd "$CONTROL_DIR" && /usr/bin/make --no-print-directory --file "$EARLIER" --file "$MAKEFILE" check) >"$TEMP_ROOT/multiple.out" 2>&1; then exit 1; fi
-grep -Fq "repository Makefile path could not be resolved" "$TEMP_ROOT/multiple.out"
-printf '%s\n' "Makefile root tests passed: 77 executed target/authority cases and 20 invalid-runtime, function, file-list, preload, or multi-Makefile rejections"
+if (cd "$CONTROL_DIR" && /usr/bin/make --no-print-directory --file "$EARLIER" --file "$MAKEFILE" check) >"$TEMP_ROOT/earlier-multiple.out" 2>&1; then exit 1; fi
+grep -Fq "repository Makefile path could not be resolved" "$TEMP_ROOT/earlier-multiple.out"
+LATER="$TEMP_ROOT/later.mk"
+LATER_MARKER="$TEMP_ROOT/later-marker"
+cat >"$LATER" <<EOF
+build:
+	@printf owned > "$LATER_MARKER"
+EOF
+if (cd "$CONTROL_DIR" && /usr/bin/make --no-print-directory --file "$MAKEFILE" --file "$LATER" build) >"$TEMP_ROOT/later-multiple.out" 2>&1; then exit 1; fi
+grep -Fq "repository Makefile must be loaded alone" "$TEMP_ROOT/later-multiple.out"
+[ ! -e "$LATER_MARKER" ]
+printf '%s\n' "Makefile root tests passed: 77 executed target/authority cases and 21 invalid-runtime, function, file-list, preload, or multi-Makefile rejections"
