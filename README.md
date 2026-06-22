@@ -118,6 +118,14 @@ python3 scrape.py --url https://example.test/products \
   checkout and read-only permissions.
 - Parser tests cover missing prices, missing titles, and missing or blank
   product links.
+- Parser tests cover complete nested and mixed-content product titles, preserve
+  source adjacency across intra-word, punctuation, and adjacent-tag boundaries,
+  normalize only existing whitespace and entities, skip empty normalized titles,
+  and produce plain-string database values. Hostile mutations inject separators,
+  remove source separators, truncate content, leak tags, and hardcode fixtures.
+  Real BeautifulSoup parser variants and psycopg2 adapter checks run when those
+  already-installed modules are available; the portable title contract runs on
+  every supported verification runtime.
 - Parser tests also cover non-web, credential-bearing, and malformed product
   links plus relative product-link normalization and continuation after
   rejected rows.

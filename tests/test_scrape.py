@@ -1,12 +1,62 @@
+# -*- coding: utf-8 -*-
 import unittest
 try:
     import StringIO
 except ImportError:
     import io as StringIO
+import os
 import sys
 import types
 
 import scrape
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
+try:
+    from psycopg2.extensions import adapt as psycopg2_adapt
+except ImportError:
+    psycopg2_adapt = None
+
+try:
+    STRING_TYPES = (basestring,)
+except NameError:
+    STRING_TYPES = (str,)
+
+
+TITLE_EXTRACTION = "title_text = u' '.join(link.get_text().split())"
+
+
+def title_contract_failures(scrape_source, test_source):
+    failures = []
+    if TITLE_EXTRACTION not in scrape_source:
+        failures.append('title extraction must normalize only existing whitespace')
+    if 'link.contents[0]' in scrape_source:
+        failures.append('title extraction must not use the first anchor child')
+    if 'if not title_text:\n            return None' not in scrape_source:
+        failures.append('title extraction must skip normalized empty titles')
+    if 'return (title_text, link_url, price_text)' not in scrape_source:
+        failures.append('database rows must receive normalized plain title text')
+    for fixture in ('Nested title', 'ACME Wire Stripper', 'Outlet cover'):
+        if fixture in scrape_source:
+            failures.append('production title extraction must not hardcode test fixtures')
+    for test_name in (
+            'test_real_parser_extracts_nested_only_title_as_plain_text',
+            'test_real_parser_extracts_complete_mixed_content_title',
+            'test_real_parser_preserves_intra_word_and_punctuation_adjacency',
+            'test_real_parser_preserves_adjacent_tag_boundaries',
+            'test_real_parser_preserves_direct_text_title',
+            'test_real_parser_normalizes_whitespace_and_entities',
+            'test_available_real_parsers_preserve_title_adjacency',
+            'test_real_parser_excludes_script_and_style_text',
+            'test_real_parser_skips_truly_empty_title',
+            'test_real_parser_title_is_psycopg2_adaptable_without_database',
+            'test_real_parser_title_extraction_is_not_fixture_hardcoded'):
+        if test_name not in test_source:
+            failures.append('missing title extraction regression %s' % test_name)
+    return failures
 
 
 MISSING_HREF = object()
@@ -222,6 +272,22 @@ class FakeAnchor(object):
             return self.href
         raise KeyError(key)
 
+    def get_text(self, separator='', strip=False):
+        text = separator.join(self.contents)
+        return text.strip() if strip else text
+
+
+class SemanticAnchor(FakeAnchor):
+    def __init__(self, text_nodes, href='/item'):
+        super(SemanticAnchor, self).__init__(object(), href)
+        self.text_nodes = text_nodes
+
+    def get_text(self, separator='', strip=False):
+        text_nodes = self.text_nodes
+        if strip:
+            text_nodes = [text.strip() for text in text_nodes if text.strip()]
+        return separator.join(text_nodes)
+
 
 class FakeTitle(object):
     def __init__(self, anchor):
@@ -266,6 +332,12 @@ class FakeProductNode(object):
         return None
 
 
+class SemanticProductNode(FakeProductNode):
+    def __init__(self, text_nodes):
+        super(SemanticProductNode, self).__init__(price_text='$4.00')
+        self.title = FakeTitle(SemanticAnchor(text_nodes))
+
+
 class FakePage(object):
     def __init__(self, products):
         self.products = products
@@ -282,6 +354,111 @@ def database_with(table_name):
     database.cur = FakeCursor()
     database.conn = FakeConnection()
     return database
+
+
+def portable_title_behavior_failures(product_class):
+    database = FakeProductDatabase()
+    product = product_class(database, 'https://example.test/source')
+    page = FakePage([
+        SemanticProductNode(['Nested title']),
+        SemanticProductNode(['ACME ', 'Wire', ' Stripper']),
+        SemanticProductNode(['i', 'Phone', ' 15']),
+        SemanticProductNode(['ACME', u'®']),
+        SemanticProductNode(['ACME', 'Wire', 'Stripper']),
+        SemanticProductNode([u'  ACME\xa0', 'Wire\n\tStripper  ']),
+        SemanticProductNode([' ', u'\xa0', '\n\t']),
+        SemanticProductNode(['Variable ', 'Catalog', ' Entry']),
+    ])
+    try:
+        product.find_products(page)
+    except BaseException as error:
+        return ['title extraction raised %s' % error.__class__.__name__]
+
+    expected = [
+        ('Nested title', 'https://example.test/item', '$4.00'),
+        ('ACME Wire Stripper', 'https://example.test/item', '$4.00'),
+        ('iPhone 15', 'https://example.test/item', '$4.00'),
+        (u'ACME®', 'https://example.test/item', '$4.00'),
+        ('ACMEWireStripper', 'https://example.test/item', '$4.00'),
+        ('ACME Wire Stripper', 'https://example.test/item', '$4.00'),
+        ('Variable Catalog Entry', 'https://example.test/item', '$4.00'),
+    ]
+    if database.inserts != expected:
+        return ['unexpected title rows: %r' % (database.inserts,)]
+    for title, unused_link, unused_price in database.inserts:
+        if not isinstance(title, STRING_TYPES):
+            return ['title is not a plain string: %r' % (title,)]
+    return []
+
+
+class TitleExtractionContractTests(unittest.TestCase):
+    def sources(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, 'scrape.py'), 'r') as source_file:
+            scrape_source = source_file.read()
+        with open(__file__, 'r') as test_file:
+            test_source = test_file.read()
+        return scrape_source, test_source
+
+    def test_title_extraction_contract_rejects_hostile_mutations(self):
+        scrape_source, test_source = self.sources()
+        self.assertEqual([], title_contract_failures(scrape_source, test_source))
+        self.assertEqual([], portable_title_behavior_failures(scrape.Product))
+
+        mutations = {
+            'first child': scrape_source.replace(
+                TITLE_EXTRACTION,
+                'title_text = link.contents[0]',
+                1,
+            ),
+            'truncated first word': scrape_source.replace(
+                TITLE_EXTRACTION,
+                "title_text = link.get_text().split()[0]",
+                1,
+            ),
+            'injected node boundaries': scrape_source.replace(
+                TITLE_EXTRACTION,
+                "title_text = u' '.join(link.get_text(u' ', strip=True).split())",
+                1,
+            ),
+            'missing source boundaries': scrape_source.replace(
+                TITLE_EXTRACTION,
+                "title_text = u''.join(link.get_text().split())",
+                1,
+            ),
+            'tag leakage': scrape_source.replace(
+                TITLE_EXTRACTION,
+                "title_text = link.find('span')",
+                1,
+            ),
+            'hardcoded fixture': scrape_source.replace(
+                TITLE_EXTRACTION,
+                "title_text = u'Nested title'",
+                1,
+            ),
+            'empty title accepted': scrape_source.replace(
+                'if not title_text:\n            return None\n',
+                '',
+                1,
+            ),
+            'raw title returned': scrape_source.replace(
+                'return (title_text, link_url, price_text)',
+                'return (link.contents[0], link_url, price_text)',
+                1,
+            ),
+        }
+        for description, mutated_source in mutations.items():
+            self.assertNotEqual(scrape_source, mutated_source, description)
+            self.assertTrue(
+                title_contract_failures(mutated_source, test_source),
+                '%s mutation was accepted' % description,
+            )
+            namespace = {'__name__': 'mutated_scrape'}
+            eval(compile(mutated_source, 'mutated_scrape.py', 'exec'), namespace)
+            self.assertTrue(
+                portable_title_behavior_failures(namespace['Product']),
+                '%s mutation passed portable behavior' % description,
+            )
 
 
 class DatabaseTests(unittest.TestCase):
@@ -987,6 +1164,134 @@ class ProductParserTests(unittest.TestCase):
             ],
             database.inserts,
         )
+
+    def real_product_page(self, anchor_html, parser='html.parser'):
+        html = '''
+            <div class="zg_item_normal">
+              <div class="zg_title"><a href="/item">%s</a></div>
+              <span class="price">$4.00</span>
+            </div>
+        ''' % anchor_html
+        return BeautifulSoup(html, parser)
+
+    def parsed_real_title(self, anchor_html, parser='html.parser'):
+        database = FakeProductDatabase()
+        product = scrape.Product(database, 'https://example.test/source')
+        product.find_products(self.real_product_page(anchor_html, parser))
+        return database.inserts
+
+    def available_real_parsers(self):
+        parsers = []
+        for parser in ('html.parser', 'lxml', 'html5lib'):
+            try:
+                BeautifulSoup('<a>title</a>', parser)
+            except Exception:
+                continue
+            parsers.append(parser)
+        return parsers
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_extracts_nested_only_title_as_plain_text(self):
+        inserts = self.parsed_real_title('<span>Nested title</span>')
+
+        self.assertEqual(1, len(inserts))
+        self.assertEqual('Nested title', inserts[0][0])
+        self.assertTrue(isinstance(inserts[0][0], STRING_TYPES))
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_extracts_complete_mixed_content_title(self):
+        inserts = self.parsed_real_title('ACME <span>Wire</span> Stripper')
+
+        self.assertEqual('ACME Wire Stripper', inserts[0][0])
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_preserves_intra_word_and_punctuation_adjacency(self):
+        self.assertEqual(
+            'iPhone 15',
+            self.parsed_real_title('i<span>Phone</span> 15')[0][0],
+        )
+        self.assertEqual(
+            u'ACME®',
+            self.parsed_real_title('ACME<span>®</span>')[0][0],
+        )
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_preserves_adjacent_tag_boundaries(self):
+        self.assertEqual(
+            'ACMEWireStripper',
+            self.parsed_real_title('<span>ACME</span><span>Wire</span><span>Stripper</span>')[0][0],
+        )
+        self.assertEqual(
+            'ACME Wire Stripper',
+            self.parsed_real_title(
+                '<span>ACME</span> <span>Wire</span> <span>Stripper</span>'
+            )[0][0],
+        )
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_preserves_direct_text_title(self):
+        inserts = self.parsed_real_title('Outlet cover')
+
+        self.assertEqual('Outlet cover', inserts[0][0])
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_normalizes_whitespace_and_entities(self):
+        inserts = self.parsed_real_title(
+            '  ACME&nbsp; <span> Wire\n\t&amp;\tStripper </span>  '
+        )
+
+        self.assertEqual('ACME Wire & Stripper', inserts[0][0])
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_available_real_parsers_preserve_title_adjacency(self):
+        parsers = self.available_real_parsers()
+        self.assertIn('html.parser', parsers)
+        for parser in parsers:
+            self.assertEqual(
+                'iPhone 15',
+                self.parsed_real_title('i<span>Phone</span> 15', parser)[0][0],
+                parser,
+            )
+            self.assertEqual(
+                'ACME Wire Stripper',
+                self.parsed_real_title('ACME <span>Wire</span> Stripper', parser)[0][0],
+                parser,
+            )
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_excludes_script_and_style_text(self):
+        inserts = self.parsed_real_title(
+            'ACME<script>ignored()</script><style>.ignored{}</style><span>®</span>'
+        )
+
+        self.assertEqual(u'ACME®', inserts[0][0])
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_skips_truly_empty_title(self):
+        inserts = self.parsed_real_title(' &nbsp; <span>\n\t</span> ')
+
+        self.assertEqual([], inserts)
+
+    @unittest.skipUnless(
+        BeautifulSoup is not None and psycopg2_adapt is not None,
+        'BeautifulSoup or psycopg2 is unavailable',
+    )
+    def test_real_parser_title_is_psycopg2_adaptable_without_database(self):
+        inserts = self.parsed_real_title('<span>Nested title</span>')
+
+        quoted = psycopg2_adapt(inserts[0][0]).getquoted()
+
+        self.assertTrue(quoted)
+        self.assertTrue(isinstance(inserts[0][0], STRING_TYPES))
+
+    @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
+    def test_real_parser_title_extraction_is_not_fixture_hardcoded(self):
+        words = ['Variable', 'Catalog', 'Entry']
+        anchor_html = '%s <em>%s</em> %s' % tuple(words)
+
+        inserts = self.parsed_real_title(anchor_html)
+
+        self.assertEqual(' '.join(words), inserts[0][0])
 
     def test_find_products_skips_incomplete_products(self):
         database = FakeProductDatabase()

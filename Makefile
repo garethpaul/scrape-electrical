@@ -32,6 +32,7 @@ export PYTHONDONTWRITEBYTECODE
 lint:
 	$(PYTHON) -B "$$ROOT/scripts/check-docs-plans.py"
 	cd "$$ROOT" && $(PYTHON) -B -c 'compile(open("scrape.py").read(), "scrape.py", "exec")'
+	cd "$$ROOT" && $(PYTHON) -B -c 'compile(open("tests/test_scrape.py", "rb").read(), "tests/test_scrape.py", "exec")'
 
 contract-test:
 	$(PYTHON) -B "$$ROOT/scripts/test_workflow_contract.py"
@@ -43,6 +44,7 @@ build: lint
 
 root-test:
 	/bin/sh "$$ROOT/scripts/test-makefile-root.sh"
+	/bin/sh "$$ROOT/scripts/test-root-tool-portability.sh"
 
 verify: root-test lint contract-test test
 
