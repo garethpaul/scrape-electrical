@@ -276,6 +276,12 @@ class Product(object):
         if link is None or not link.contents:
             return None
 
+        for hidden_content in link.find_all(['script', 'style']):
+            hidden_content.extract()
+        title_text = u' '.join(link.get_text().split())
+        if not title_text:
+            return None
+
         try:
             href = link['href']
         except KeyError:
@@ -293,7 +299,7 @@ class Product(object):
         if bold_price is not None:
             price_text = bold_price.text
 
-        return (link.contents[0], link_url, price_text)
+        return (title_text, link_url, price_text)
 
     def normalized_link(self, href):
         if not href or not href.strip():

@@ -1,5 +1,18 @@
 # Changes
 
+## 2026-06-25
+
+- Excluded script and style descendants before normalizing product-title text,
+  including when BeautifulSoup selects html5lib, with parser-variant regression coverage.
+
+## 2026-06-22
+
+- Extracted complete product-title text from nested and mixed anchor markup in
+  document order, preserving source adjacency while normalizing existing
+  whitespace runs. Added real BeautifulSoup parser-variant and portable hostile-
+  mutation coverage, and skipped titles that normalize to empty without requiring
+  a live site or PostgreSQL server.
+
 ## 2026-06-21
 
 - Isolated Make verification authority while preserving exact `python2` and
