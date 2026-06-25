@@ -276,6 +276,8 @@ class Product(object):
         if link is None or not link.contents:
             return None
 
+        for hidden_content in link.find_all(['script', 'style']):
+            hidden_content.extract()
         title_text = u' '.join(link.get_text().split())
         if not title_text:
             return None

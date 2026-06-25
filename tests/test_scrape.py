@@ -27,12 +27,15 @@ except NameError:
 
 
 TITLE_EXTRACTION = "title_text = u' '.join(link.get_text().split())"
+HIDDEN_TITLE_CONTENT_REMOVAL = "for hidden_content in link.find_all(['script', 'style']):"
 
 
 def title_contract_failures(scrape_source, test_source):
     failures = []
     if TITLE_EXTRACTION not in scrape_source:
         failures.append('title extraction must normalize only existing whitespace')
+    if HIDDEN_TITLE_CONTENT_REMOVAL not in scrape_source:
+        failures.append('title extraction must exclude script and style descendants')
     if 'link.contents[0]' in scrape_source:
         failures.append('title extraction must not use the first anchor child')
     if 'if not title_text:\n            return None' not in scrape_source:
@@ -275,6 +278,9 @@ class FakeAnchor(object):
     def get_text(self, separator='', strip=False):
         text = separator.join(self.contents)
         return text.strip() if strip else text
+
+    def find_all(self, tags):
+        return []
 
 
 class SemanticAnchor(FakeAnchor):
@@ -1260,11 +1266,13 @@ class ProductParserTests(unittest.TestCase):
 
     @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
     def test_real_parser_excludes_script_and_style_text(self):
-        inserts = self.parsed_real_title(
-            'ACME<script>ignored()</script><style>.ignored{}</style><span>®</span>'
-        )
+        for parser in self.available_real_parsers():
+            inserts = self.parsed_real_title(
+                'ACME<script>ignored()</script><style>.ignored{}</style><span>®</span>',
+                parser,
+            )
 
-        self.assertEqual(u'ACME®', inserts[0][0])
+            self.assertEqual(u'ACME®', inserts[0][0], parser)
 
     @unittest.skipUnless(BeautifulSoup is not None, 'BeautifulSoup is unavailable')
     def test_real_parser_skips_truly_empty_title(self):
