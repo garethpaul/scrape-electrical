@@ -34,6 +34,11 @@ changes in this cycle.
 - The repository and external-directory `make check` passed under both runtimes.
 - Three hostile response-cleanup mutations were rejected: unconditional close,
   swallowed successful close failure, and narrowed `Exception` handling.
+- Hosted Python 2.7, Python 3.12, and CodeQL checks passed on implementation
+  head `277cf24b1b45b3594dcf9f471150fbf2d7a00dc0`.
+- Codex branch review was attempted but failed with HTTP 401 before analysis;
+  immutable manual review of the same implementation head found no actionable
+  findings.
 - Documentation, workflow, Make authority, bytecode, generated-artifact,
   credential-pattern, and exact-diff checks passed.
 - No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised.
