@@ -67,6 +67,9 @@ The explicit redirect hop limit permits five total redirects and two repeats of
 the same target, bounding same-host loops and long chains.
 HTTP responses must close after body reads, including parser or transport
 failure paths, so repeated scraping does not leak network resources.
+Response read primary error preservation keeps transport, validation, and
+interruption failures authoritative when response cleanup also fails, while
+successful reads still surface close failures.
 The default 5 MiB response body size limit rejects oversized pages before HTML
 parsing while still closing the response; increases require explicit CLI input.
 Bounded response reads continue through legal short response chunks until EOF or

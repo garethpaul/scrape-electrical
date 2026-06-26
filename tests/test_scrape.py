@@ -186,11 +186,13 @@ class LegacyFakeHeaders(object):
 
 class FakeResponse(object):
     def __init__(self, body='response body', error=None, content_encoding=None,
-                 content_type=None):
+                 content_type=None, close_error=None):
         self.body = body
         self.error = error
+        self.close_error = close_error
         self.headers = FakeHeaders(content_encoding, content_type)
         self.closed = False
+        self.close_count = 0
         self.read_sizes = []
         self.offset = 0
 
@@ -210,7 +212,10 @@ class FakeResponse(object):
         return chunk
 
     def close(self):
+        self.close_count += 1
         self.closed = True
+        if self.close_error is not None:
+            raise self.close_error
 
 
 class FakeRedirectResponse(object):
@@ -1051,6 +1056,49 @@ class ProductParserTests(unittest.TestCase):
             scrape.urllib2.build_opener = original_build_opener
 
         self.assertTrue(response.closed)
+
+    def test_read_preserves_primary_error_when_response_close_fails(self):
+        original_build_opener = scrape.urllib2.build_opener
+        try:
+            for primary_error in (RuntimeError('read failed'), KeyboardInterrupt()):
+                response = FakeResponse(
+                    error=primary_error,
+                    close_error=RuntimeError('response close failed'),
+                )
+                opener = FakeOpener(response=response)
+                scrape.urllib2.build_opener = lambda *args: opener
+                product = scrape.Product(None, 'https://example.test/source')
+
+                caught_error = None
+                try:
+                    product.read()
+                except BaseException as error:
+                    caught_error = error
+
+                self.assertTrue(caught_error is primary_error)
+                self.assertEqual(1, response.close_count)
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+    def test_read_propagates_response_close_failure_after_success(self):
+        close_error = RuntimeError('response close failed')
+        response = FakeResponse(close_error=close_error)
+        opener = FakeOpener(response=response)
+        original_build_opener = scrape.urllib2.build_opener
+        scrape.urllib2.build_opener = lambda *args: opener
+
+        try:
+            product = scrape.Product(None, 'https://example.test/source')
+            caught_error = None
+            try:
+                product.read()
+            except RuntimeError as error:
+                caught_error = error
+        finally:
+            scrape.urllib2.build_opener = original_build_opener
+
+        self.assertTrue(caught_error is close_error)
+        self.assertEqual(1, response.close_count)
 
     def test_product_accepts_positive_finite_timeout(self):
         for value in [1, 0.5, 30]:

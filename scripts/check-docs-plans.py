@@ -43,6 +43,9 @@ DATABASE_CONSTRUCTOR_CLEANUP_PLAN = os.path.join(
 PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN = os.path.join(
     DOCS_PLANS, '2026-06-17-product-construction-primary-error.md'
 )
+RESPONSE_READ_PRIMARY_ERROR_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-26-response-read-primary-error.md'
+)
 RESPONSIBLE_USE_PLAN = os.path.join(
     DOCS_PLANS, '2026-06-25-responsible-scraping-guide.md'
 )
@@ -90,6 +93,7 @@ for required_path in (
         CONSTRUCTION_CLEANUP_PLAN,
         DATABASE_CONSTRUCTOR_CLEANUP_PLAN,
         PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN,
+        RESPONSE_READ_PRIMARY_ERROR_PLAN,
         RESPONSIBLE_USE_PLAN,
         EMPTY_PRODUCT_PRICE_PLAN,
         RESPONSIBLE_USE_GUIDE,
@@ -301,6 +305,14 @@ for phrase in (
     if phrase not in scrape_source:
         failures.append('scrape.py must retain response body size limit fragment %r' % phrase)
 for phrase in (
+        'read_failed = False',
+        'except BaseException:\n            read_failed = True\n            raise',
+        'if read_failed:\n                _close_response_after_read_failure(response)',
+        'def _close_response_after_read_failure(response):',
+        'try:\n        response.close()\n    except BaseException:\n        pass'):
+    if phrase not in scrape_source:
+        failures.append('scrape.py must preserve response read errors during cleanup via %r' % phrase)
+for phrase in (
         'class SameHostRedirectHandler(urllib2.HTTPRedirectHandler):',
         'max_repeats = 2',
         'max_redirections = 5',
@@ -398,6 +410,11 @@ for test_name in (
         'test_product_rejects_non_positive_response_limit',
         'test_product_rejects_non_integer_response_limit',
         'test_run_cli_forwards_response_limit'):
+    if test_name not in test_source:
+        failures.append('tests/test_scrape.py must retain %s' % test_name)
+for test_name in (
+        'test_read_preserves_primary_error_when_response_close_fails',
+        'test_read_propagates_response_close_failure_after_success'):
     if test_name not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % test_name)
 for test_name in (
@@ -571,8 +588,8 @@ if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNOREC
 if any('non-string URL guard' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the non-string URL guard')
-if 'all 66' not in readme:
-    failures.append('README.md must record the complete 66-test offline suite')
+if 'all 68' not in readme:
+    failures.append('README.md must record the complete 68-test offline suite')
 if any(re.search(r'empty(?:,)?\s+(?:or\s+)?whitespace-only', document, re.IGNORECASE) is None or
        'price' not in document.lower() for document in (readme, vision, security, changes)):
     failures.append('docs must describe the empty product price boundary')
@@ -595,6 +612,8 @@ for document_name, document in (
         failures.append('%s must document the content type boundary' % document_name)
     if 'product construction primary error' not in document.lower():
         failures.append('%s must document Product construction primary error preservation' % document_name)
+    if 'response read primary error' not in document.lower():
+        failures.append('%s must document response read primary error preservation' % document_name)
 
 agents = read(os.path.join(ROOT, 'AGENTS.md'))
 if 'Python 2.7 and Python 3.12' not in agents or 'make check PYTHON=python3' not in agents:
@@ -747,6 +766,19 @@ for evidence in (
     if evidence not in product_construction_primary_error_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN), evidence))
+
+response_read_primary_error_plan = read(
+    RESPONSE_READ_PRIMARY_ERROR_PLAN
+) if os.path.isfile(RESPONSE_READ_PRIMARY_ERROR_PLAN) else ''
+for evidence in (
+        'Status: Completed',
+        '68 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'hostile response-cleanup mutations were rejected',
+        'No live HTTP, HTML parsing, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in response_read_primary_error_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(RESPONSE_READ_PRIMARY_ERROR_PLAN), evidence))
 
 empty_product_price_plan = read(EMPTY_PRODUCT_PRICE_PLAN) if os.path.isfile(
     EMPTY_PRODUCT_PRICE_PLAN

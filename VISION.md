@@ -24,6 +24,7 @@ Priority:
 - Reject explicit non-HTML content types before body reads while retaining
   compatibility with source pages that omit the header
 - Close source-page responses on successful and failed body reads
+- Preserve the response read primary error when response cleanup also fails
 - Require source page URLs to use HTTP(S) before network reads
 - Reject malformed source URL authorities before opener construction
 - Scraper timeouts must be finite positive numbers before network setup.
