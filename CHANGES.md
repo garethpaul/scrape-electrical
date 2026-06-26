@@ -1,5 +1,37 @@
 # Changes
 
+## 2026-06-26 06:25 - P2 - Reject non-string URL values safely
+
+### Summary
+
+Added a Python 2/3-compatible non-string URL guard so malformed caller or
+parser values cannot abort a scrape through an unexpected `.strip()` failure.
+
+### Work completed
+
+- Rejected non-string source URL values with the existing sanitized error.
+- Skipped non-string parsed product links while preserving later safe rows.
+- Added regression coverage for booleans, integers, lists, and arbitrary
+  objects without echoing rejected source values.
+- Raised the complete offline-suite contract from 63 to 65 tests under Python
+  2.7 and Python 3.12.
+
+### Threads
+
+- Started: non-string URL normalization boundary.
+- Continued: continuous open-source maintenance loop.
+- Stopped: none.
+
+### Files changed
+
+- `scrape.py`
+- `tests/test_scrape.py`
+- `scripts/check-docs-plans.py`
+- `README.md`
+- `SECURITY.md`
+- `VISION.md`
+- `docs/plans/2026-06-25-non-string-url-guard.md`
+
 ## 2026-06-26 06:08 - P1 - Define responsible scraping boundaries
 
 ### Summary

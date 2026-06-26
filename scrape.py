@@ -19,6 +19,11 @@ try:
 except NameError:
     INTEGER_TYPES = (int,)
 
+try:
+    STRING_TYPES = (basestring,)
+except NameError:
+    STRING_TYPES = (str,)
+
 
 DEFAULT_MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 
@@ -177,7 +182,7 @@ class Product(object):
         self.max_response_bytes = max_response_bytes
 
     def normalized_source_url(self, url):
-        if not url or not url.strip():
+        if not isinstance(url, STRING_TYPES) or not url.strip():
             raise ValueError('source URL must use http or https and include a host')
 
         source_url = url.strip()
@@ -302,7 +307,7 @@ class Product(object):
         return (title_text, link_url, price_text)
 
     def normalized_link(self, href):
-        if not href or not href.strip():
+        if not isinstance(href, STRING_TYPES) or not href.strip():
             return None
 
         try:

@@ -107,13 +107,16 @@ python3 scrape.py --url https://example.test/products \
 - Parsed product links are resolved against the source URL, must use `http` or
   `https`, must not contain product link credentials, and malformed product
   links are skipped before insertion without stopping later safe rows.
+- The non-string URL guard rejects invalid source URL value types with a
+  sanitized error and skips non-string parsed product links without stopping
+  later safe rows.
 - Database connection fields are passed to `psycopg2` as structured keyword
   arguments instead of an interpolated connection string.
 
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 63 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 65 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
