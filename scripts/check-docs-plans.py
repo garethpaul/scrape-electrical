@@ -43,6 +43,10 @@ DATABASE_CONSTRUCTOR_CLEANUP_PLAN = os.path.join(
 PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN = os.path.join(
     DOCS_PLANS, '2026-06-17-product-construction-primary-error.md'
 )
+RESPONSIBLE_USE_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-25-responsible-scraping-guide.md'
+)
+RESPONSIBLE_USE_GUIDE = os.path.join(ROOT, 'RESPONSIBLE_USE.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
 
@@ -83,6 +87,8 @@ for required_path in (
         CONSTRUCTION_CLEANUP_PLAN,
         DATABASE_CONSTRUCTOR_CLEANUP_PLAN,
         PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN,
+        RESPONSIBLE_USE_PLAN,
+        RESPONSIBLE_USE_GUIDE,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
         failures.append('%s is missing' % rel(required_path))
@@ -478,6 +484,27 @@ if 'Status: Completed' not in cli_plan or '--dry-run' not in cli_plan:
     failures.append('%s must record completed CLI dry-run work' % rel(CLI_DRY_RUN_PLAN))
 
 security = read(os.path.join(ROOT, 'SECURITY.md'))
+responsible_use = read(RESPONSIBLE_USE_GUIDE) if os.path.isfile(RESPONSIBLE_USE_GUIDE) else ''
+responsible_use_prose = re.sub(r'<https?://[^>]+>', '', responsible_use)
+responsible_use_contract = re.sub(r'\s+', ' ', responsible_use_prose.replace('`', '')).lower()
+for phrase in (
+        'obtain explicit written permission',
+        'robots.txt is not authorization',
+        'one request at a time',
+        'retry-after',
+        '429 or 503',
+        'stop the run',
+        'retention deadline',
+        'delete raw responses',
+        'do not collect personal data'):
+    if phrase not in responsible_use_contract:
+        failures.append('RESPONSIBLE_USE.md must retain %r' % phrase)
+if '[`RESPONSIBLE_USE.md`](RESPONSIBLE_USE.md)' not in readme:
+    failures.append('README.md must link the responsible-use guide')
+if '`RESPONSIBLE_USE.md`' not in security:
+    failures.append('SECURITY.md must link the responsible-use guide')
+if 'Document target-site permission, rate limits, and data retention' in vision:
+    failures.append('VISION.md must not retain the completed responsible-use priority')
 if 'non-web link schemes' not in security or 'relative product links' not in security:
     failures.append('SECURITY.md must document product link scheme and relative URL boundaries')
 if 'Source page URLs must also use HTTP(S)' not in security:
@@ -521,8 +548,8 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 51' not in readme:
-    failures.append('README.md must record the complete 51-test offline suite')
+if 'all 63' not in readme:
+    failures.append('README.md must record the complete 63-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')

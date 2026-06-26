@@ -50,7 +50,6 @@ Priority:
 
 Next priorities:
 
-- Document target-site permission, rate limits, and data retention
 - Add rate limiting or backoff before broad live scraping
 - Expand mocked HTML and database tests before parser changes
 

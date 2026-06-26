@@ -17,6 +17,7 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `docs/plans` - completed maintenance plans for the current baseline
 - `plans` - historical implementation notes
 - `requirements.txt` - optional scraper/database dependencies
+- `RESPONSIBLE_USE.md` - permission, pacing, stop, and retention checklist
 - `scripts` - documentation-plan validators
 - `scrape.py` - scraper and PostgreSQL insert implementation
 - `tests` - Python 2 and Python 3 parser and database unit tests
@@ -69,7 +70,9 @@ python3 scrape.py --url https://example.test/products \
 
 - Existing callers can still import `scrape.py`, create a `Database` instance,
   and pass it to `main(database, url)`.
-- Confirm target-site permission and rate limits before scraping.
+- Follow [`RESPONSIBLE_USE.md`](RESPONSIBLE_USE.md) before any live request;
+  it requires written target-site permission, an owner-approved request budget,
+  explicit stop conditions, and a retention deadline.
 - Use test data first; the script writes to PostgreSQL when `Product.find()`
   inserts parsed products.
 - Use `--dry-run` before live writes to confirm parser output.
@@ -110,7 +113,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 51 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 63 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18

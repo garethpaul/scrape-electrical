@@ -1,5 +1,72 @@
 # Changes
 
+## 2026-06-26 06:08 - P1 - Define responsible scraping boundaries
+
+### Summary
+
+Closed the permission, request-rate, and data-retention roadmap item with a
+standards-backed operator guide and a Python 2/3 documentation contract.
+
+### Work completed
+
+- Required written target-owner approval with explicit host, path, purpose,
+  window, request budget, field, storage, contact, and retention scope.
+- Distinguished RFC 9309 robots rules from authorization.
+- Documented serial requests, `Retry-After`, fail-closed stop conditions, data
+  minimization, raw-response deletion, and derived-row retention boundaries.
+- Linked the guide from usage and security documentation and removed the
+  completed roadmap item.
+- Corrected the frozen offline-suite count from 51 to the 63 tests the current
+  gate actually executes.
+
+### Threads
+
+- Started: responsible-use documentation contract.
+- Continued: continuous open-source maintenance loop.
+- Stopped: none.
+
+### Files changed
+
+- `RESPONSIBLE_USE.md` — permission, pacing, stop, and retention checklist.
+- `README.md` and `SECURITY.md` — operator-facing guide links.
+- `VISION.md` — completed roadmap state.
+- `scripts/check-docs-plans.py` — durable guide contract.
+- `docs/plans/2026-06-25-responsible-scraping-guide.md` — implementation plan.
+- `CHANGES.md` — this maintenance-cycle record.
+
+### Validation
+
+- Red contract run — failed for the missing guide, plan, links, required
+  boundaries, and stale roadmap item before documentation was added.
+- Pinned Python 2.7 `make check` — passed all 63 offline tests with 11 expected
+  real-parser dependency skips, 21 workflow mutations, and Make authority gates.
+- Python 3 `make check` — passed all 63 offline tests, 21 workflow mutations,
+  documentation contracts, and Make authority gates.
+- Thirteen isolated hostile documentation mutations — all rejected, including
+  removal of permission, pacing, `Retry-After`, stop, retention, deletion,
+  personal-data, guide-link, roadmap, and 63-test-count promises.
+
+### Bugs / findings
+
+- P1: Existing guidance said to confirm permission and rate limits but did not
+  define approval scope, stop conditions, retention, or deletion evidence.
+- P1: Existing guidance did not clarify that robots rules are not authorization
+  or explain server-directed `Retry-After` handling.
+- P2: README and its contract still claimed 51 offline tests after the suite had
+  grown to 63, allowing verification documentation to drift from actual output.
+- P2: The initial `Retry-After` assertion accepted the RFC URL after all prose
+  guidance was removed; a hostile mutation exposed and fixed that false positive.
+
+### Blockers
+
+- No live target permission, HTTP requests, or PostgreSQL credentials are
+  available or required; verification remains fully offline.
+
+### Next action
+
+- Open an exact-head PR, require hosted Python 2.7/Python 3.12 and CodeQL gates,
+  then review and merge if clean.
+
 ## 2026-06-25
 
 - Excluded script and style descendants before normalizing product-title text,
