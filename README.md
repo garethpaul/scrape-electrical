@@ -100,6 +100,9 @@ python3 scrape.py --url https://example.test/products \
   the follow-up request.
 - Rejected redirect response bodies are closed before the sanitized redirect
   error is raised, so blocked redirects do not leak response resources.
+- Response read primary errors and interruptions remain authoritative when
+  response cleanup also fails; close failures still propagate after successful
+  reads.
 - The redirect hop limit permits at most five total redirects and two repeats
   of the same target before the runtime aborts the request chain.
 - Product cards without usable links are skipped rather than aborting the
@@ -118,7 +121,7 @@ python3 scrape.py --url https://example.test/products \
 ## Testing and Verification
 
 - `make check PYTHON=python2` and `make check PYTHON=python3` run syntax checks
-  plus all 66 mocked database and parser tests under Python 2.7 and Python 3.12.
+  plus all 68 mocked database and parser tests under Python 2.7 and Python 3.12.
 - Both gates run documentation and workflow-policy checks without successful
   skip paths or live scraper/database dependencies.
 - GitHub Actions runs the same offline gate in a digest-pinned Python 2.7.18
@@ -141,6 +144,8 @@ python3 scrape.py --url https://example.test/products \
   port, and whitespace normalization.
 - Network tests require HTTP responses to close after successful and failed
   body reads.
+- Network tests preserve the exact response read primary error when close also
+  fails, while retaining close failures after successful reads.
 - Network tests require rejected redirect response bodies to close before the
   sanitized redirect error escapes.
 - Network tests cover the exact response body size limit, oversized rejection,

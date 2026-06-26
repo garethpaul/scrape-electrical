@@ -57,6 +57,8 @@
   rejected before body reads; missing `Content-Type` remains compatible.
 - Rejected same-host redirect responses must close before the sanitized
   redirect error escapes.
+- Response cleanup failures must not replace an active read error or
+  interruption; successful reads still surface close failures.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link handling.
 - Treat empty or whitespace-only plain and bold prices as incomplete product rows; skip them before persistence and continue later safe rows.
 - Hosted checks must run the complete offline suite under Python 2.7 and Python 3.12, using the reviewed digest-pinned legacy container and immutable setup

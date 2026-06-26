@@ -1,5 +1,46 @@
 # Changes
 
+## 2026-06-26 - P1 - Preserve response read errors during cleanup
+
+### Summary
+
+Prevented a failing HTTP response close from replacing the exact transport,
+validation, or interruption error that caused response processing to fail.
+
+### Work completed
+
+- Added a Python 2-safe cleanup helper that suppresses response-close failures
+  only while a primary read error is active.
+- Kept successful-read ownership unchanged so a close failure still propagates.
+- Added exact-object regressions for ordinary read failures and
+  `KeyboardInterrupt`, plus a successful-read close-failure regression.
+- Registered source, test, documentation, plan, and 68-test-suite contracts.
+
+### Validation
+
+- RED: the focused regression received `response close failed` instead of the
+  original read error or interruption.
+- GREEN: focused primary-error and successful-close tests passed.
+- Repository and external-directory `make check` passed all 68 tests under
+  Python 2.7 and Python 3.12; hosted dual-runtime checks and CodeQL also passed
+  on the implementation head.
+- Three isolated hostile response-cleanup mutations were rejected.
+- Dual-runtime, mutation, hosted, and review evidence is recorded in
+  `docs/plans/2026-06-26-response-read-primary-error.md`.
+
+### Security
+
+- Response read primary error preservation prevents misleading diagnostics
+  while still making one cleanup attempt and surfacing standalone close errors.
+
+### Review
+
+- The required Codex branch review was attempted for PR #26, but the Codex API
+  returned HTTP 401 before analysis began.
+- Immutable manual review of implementation head
+  `277cf24b1b45b3594dcf9f471150fbf2d7a00dc0` found no correctness, security,
+  compatibility, or test-coverage findings.
+
 ## 2026-06-26 02:02 PDT - P1 - Skip empty product prices
 
 ### Summary

@@ -207,6 +207,7 @@ class Product(object):
     def read(self):
         opener = urllib2.build_opener(SameHostRedirectHandler(self.url))
         response = opener.open(self.build_request(), timeout=self.timeout)
+        read_failed = False
         try:
             headers = response.info()
             for content_encoding in self.header_values(
@@ -239,8 +240,14 @@ class Product(object):
                     'response body exceeds maximum of %d bytes' % self.max_response_bytes
                 )
             return body
+        except BaseException:
+            read_failed = True
+            raise
         finally:
-            response.close()
+            if read_failed:
+                _close_response_after_read_failure(response)
+            else:
+                response.close()
 
     def header_values(self, headers, name):
         if hasattr(headers, 'get_all'):
@@ -419,6 +426,14 @@ def _close_database_after_product_construction_failure(database):
     # A separate frame preserves the active exception on Python 2.
     try:
         database.close()
+    except BaseException:
+        pass
+
+
+def _close_response_after_read_failure(response):
+    # A separate frame preserves the active exception on Python 2.
+    try:
+        response.close()
     except BaseException:
         pass
 
