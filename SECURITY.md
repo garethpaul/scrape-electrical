@@ -35,6 +35,10 @@ Helpful reports include:
 
 For web services, APIs, sockets, or scraping workflows, prioritize reports involving authentication bypass, authorization errors, injection, server-side request forgery, unsafe deserialization, credential leakage, data exposure, or denial-of-service conditions. Use test accounts and minimal proof-of-concept traffic only.
 
+Live scraper operation must follow `RESPONSIBLE_USE.md`, including written
+target-owner permission, bounded request scope, stop conditions, and deletion
+deadlines. Robots rules must be honored but do not grant authorization.
+
 Product parsing rejects non-web link schemes. It normalizes relative product links
 against the source page before database writes. Preserve that boundary when
 changing scraper targets or product-link parsing.
