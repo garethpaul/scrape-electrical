@@ -1,5 +1,51 @@
 # Changes
 
+## 2026-06-26 02:02 PDT - P1 - Skip empty product prices
+
+### Summary
+
+Prevented empty or whitespace-only plain and nested bold prices from reaching
+PostgreSQL or dry-run output while preserving later valid product rows.
+
+### Work completed
+
+- Reproduced three incomplete price variants being inserted.
+- Added a Python 2/3-compatible nonblank price guard after bold-price selection.
+- Added a focused mocked regression, completed plan, guidance, and static contracts.
+
+### Threads
+
+- None; parser branches and offline coverage were reviewed directly.
+
+### Files changed
+
+- `scrape.py` — reject non-string and blank selected prices.
+- `tests/test_scrape.py` — empty plain/bold price continuation regression.
+- README, security, vision, agent guidance, plan, checker, and changelog.
+
+### Validation
+
+- RED focused suite — inserted three incomplete rows before the fix.
+- Full offline suites on Python 2.7 and Python 3.12 — passed 66 tests.
+- Repository and external-directory `make check` on both runtimes — passed.
+- Five isolated hostile mutations — all rejected.
+- Python compilation and `git diff --check` — passed.
+- Generic Python 3.12 Docker attempt — stopped in the pre-existing Make authority
+  harness under GNU Make 4.4.1; isolated Python 3.12 with hosted-compatible GNU
+  Make 4.3 passed both complete gates.
+
+### Bugs / findings
+
+- P1 correctness: remote empty price markup could create incomplete database rows.
+
+### Blockers
+
+- None; no live network or database validation is required for this boundary.
+
+### Next action
+
+- Complete exact-head review, hosted dual-runtime CI, CodeQL, and merge.
+
 ## 2026-06-26 06:25 - P2 - Reject non-string URL values safely
 
 ### Summary

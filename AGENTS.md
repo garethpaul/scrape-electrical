@@ -58,6 +58,7 @@
 - Rejected same-host redirect responses must close before the sanitized
   redirect error escapes.
 - See `docs/plans/2026-06-08-parser-link-guard.md` for incomplete product-link handling.
+- Treat empty or whitespace-only plain and bold prices as incomplete product rows; skip them before persistence and continue later safe rows.
 - Hosted checks must run the complete offline suite under Python 2.7 and Python 3.12, using the reviewed digest-pinned legacy container and immutable setup
   action with credential-free checkout, read-only permissions, and no live
   dependency installation.

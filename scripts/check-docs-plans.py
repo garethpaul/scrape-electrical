@@ -46,6 +46,9 @@ PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN = os.path.join(
 RESPONSIBLE_USE_PLAN = os.path.join(
     DOCS_PLANS, '2026-06-25-responsible-scraping-guide.md'
 )
+EMPTY_PRODUCT_PRICE_PLAN = os.path.join(
+    DOCS_PLANS, '2026-06-26-empty-product-price-boundary.md'
+)
 RESPONSIBLE_USE_GUIDE = os.path.join(ROOT, 'RESPONSIBLE_USE.md')
 CI_WORKFLOW = os.path.join(ROOT, '.github', 'workflows', 'check.yml')
 MAKEFILE = os.path.join(ROOT, 'Makefile')
@@ -88,6 +91,7 @@ for required_path in (
         DATABASE_CONSTRUCTOR_CLEANUP_PLAN,
         PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN,
         RESPONSIBLE_USE_PLAN,
+        EMPTY_PRODUCT_PRICE_PLAN,
         RESPONSIBLE_USE_GUIDE,
         CI_WORKFLOW):
     if not os.path.isfile(required_path):
@@ -445,6 +449,11 @@ if 'test_find_products_skips_credential_bearing_links' not in test_source:
     failures.append('tests/test_scrape.py must retain product link credential rejection coverage')
 if 'test_find_products_skips_malformed_links_and_continues' not in test_source:
     failures.append('tests/test_scrape.py must retain malformed product link continuation coverage')
+for phrase in (
+        'not isinstance(price_text, STRING_TYPES) or not price_text.strip()',
+        'test_find_products_skips_empty_prices_and_continues'):
+    if phrase not in scrape_source + test_source:
+        failures.append('empty product price boundary must retain %r' % phrase)
 for response_test in (
         'test_read_collects_fragmented_body_until_eof',
         'test_read_rejects_fragmented_body_over_configured_limit',
@@ -562,8 +571,11 @@ if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNOREC
 if any('non-string URL guard' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the non-string URL guard')
-if 'all 65' not in readme:
-    failures.append('README.md must record the complete 65-test offline suite')
+if 'all 66' not in readme:
+    failures.append('README.md must record the complete 66-test offline suite')
+if any(re.search(r'empty(?:,)?\s+(?:or\s+)?whitespace-only', document, re.IGNORECASE) is None or
+       'price' not in document.lower() for document in (readme, vision, security, changes)):
+    failures.append('docs must describe the empty product price boundary')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')
@@ -735,6 +747,19 @@ for evidence in (
     if evidence not in product_construction_primary_error_plan:
         failures.append('%s must record verification evidence %r' % (
             rel(PRODUCT_CONSTRUCTION_PRIMARY_ERROR_PLAN), evidence))
+
+empty_product_price_plan = read(EMPTY_PRODUCT_PRICE_PLAN) if os.path.isfile(
+    EMPTY_PRODUCT_PRICE_PLAN
+) else ''
+for evidence in (
+        'Status: Completed',
+        '66 tests passed under Python 2.7 and Python 3.12',
+        'repository and external-directory `make check` passed under both runtimes',
+        'Five isolated hostile mutations were rejected',
+        'No live HTTP, HTML fetching, PostgreSQL, credentials, or deployment was exercised'):
+    if evidence not in empty_product_price_plan:
+        failures.append('%s must record verification evidence %r' % (
+            rel(EMPTY_PRODUCT_PRICE_PLAN), evidence))
 
 ci_plan = read(CI_PLAN) if os.path.isfile(CI_PLAN) else ''
 if 'Status: Completed' not in ci_plan or 'make check' not in ci_plan:

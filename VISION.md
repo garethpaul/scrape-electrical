@@ -32,6 +32,7 @@ Priority:
 - Close rejected redirect response bodies before raising sanitized errors
 - Keep an explicit redirect hop limit on same-host chains and loops
 - Skip incomplete product cards instead of aborting the scrape
+- Reject empty or whitespace-only plain and bold product prices before database insertion
 - Resolve product links against the source URL and reject non-web schemes
 - Reject product link credentials parsed from remote markup before persistence
 - Reject malformed product links without aborting later safe product rows

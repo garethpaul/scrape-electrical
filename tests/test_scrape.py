@@ -1328,6 +1328,23 @@ class ProductParserTests(unittest.TestCase):
 
         self.assertEqual([], database.inserts)
 
+    def test_find_products_skips_empty_prices_and_continues(self):
+        database = FakeProductDatabase()
+        product = scrape.Product(database, 'https://example.test/source')
+        page = FakePage([
+            FakeProductNode('Empty plain price', '/empty-plain', ''),
+            FakeProductNode('Whitespace plain price', '/blank-plain', ' \n\t '),
+            FakeProductNode('Empty bold price', '/empty-bold', '$9.00', ''),
+            FakeProductNode('Valid item', '/valid', '$4.00'),
+        ])
+
+        product.find_products(page)
+
+        self.assertEqual(
+            [('Valid item', 'https://example.test/valid', '$4.00')],
+            database.inserts,
+        )
+
     def test_find_products_skips_non_web_links(self):
         database = FakeProductDatabase()
         product = scrape.Product(database, 'https://example.test/source')

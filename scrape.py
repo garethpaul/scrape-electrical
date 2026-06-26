@@ -303,6 +303,8 @@ class Product(object):
         bold_price = price.find('b')
         if bold_price is not None:
             price_text = bold_price.text
+        if not isinstance(price_text, STRING_TYPES) or not price_text.strip():
+            return None
 
         return (title_text, link_url, price_text)
 
