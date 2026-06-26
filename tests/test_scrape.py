@@ -1098,6 +1098,19 @@ class ProductParserTests(unittest.TestCase):
         ]:
             self.assertRaises(ValueError, scrape.Product, None, source_url)
 
+    def test_product_rejects_non_string_source_urls_without_echoing_them(self):
+        for source_url in [None, True, 1, [], object()]:
+            try:
+                scrape.Product(None, source_url)
+            except ValueError as error:
+                self.assertEqual(
+                    'source URL must use http or https and include a host',
+                    str(error),
+                )
+                self.assertNotIn(repr(source_url), str(error))
+            else:
+                self.fail('expected non-string source URL rejection')
+
     def test_product_rejects_malformed_source_authorities_without_echoing_them(self):
         for source_url in [
             'http://example.test:not-a-port/source',
@@ -1364,6 +1377,12 @@ class ProductParserTests(unittest.TestCase):
             [('Valid item', 'https://example.test/item/123', '$3.00')],
             database.inserts,
         )
+
+    def test_normalized_link_rejects_non_string_values(self):
+        product = scrape.Product(None, 'https://example.test/source')
+
+        for href in [None, True, 1, [], object()]:
+            self.assertIsNone(product.normalized_link(href))
 
     def test_find_products_normalizes_relative_links(self):
         database = FakeProductDatabase()

@@ -215,7 +215,9 @@ for phrase in (
         'from urllib.parse import urljoin, urlparse',
         'urllib2.HTTPError = urllib.error.HTTPError',
         'try:\n    INTEGER_TYPES = (int, long)',
-        'except NameError:\n    INTEGER_TYPES = (int,)'):
+        'except NameError:\n    INTEGER_TYPES = (int,)',
+        'try:\n    STRING_TYPES = (basestring,)',
+        'except NameError:\n    STRING_TYPES = (str,)'):
     if phrase not in scrape_source:
         failures.append('scrape.py must retain dual-runtime compatibility fragment %r' % phrase)
 if 'def normalized_link(self, href):' not in scrape_source:
@@ -224,6 +226,10 @@ if 'self.url = self.normalized_source_url(url)' not in scrape_source:
     failures.append('scrape.py must validate the source URL before network reads')
 if 'def normalized_source_url(self, url):' not in scrape_source:
     failures.append('scrape.py must normalize and validate source URLs')
+if 'not isinstance(url, STRING_TYPES) or not url.strip()' not in scrape_source:
+    failures.append('scrape.py must reject non-string source URL values before normalization')
+if 'not isinstance(href, STRING_TYPES) or not href.strip()' not in scrape_source:
+    failures.append('scrape.py must skip non-string product links before normalization')
 if "raise ValueError('source URL must use http or https and include a host')" not in scrape_source:
     failures.append('scrape.py must reject non-HTTP(S) source URLs before urllib2 opens them')
 if "parsed_url.scheme not in ('http', 'https')" not in scrape_source:
@@ -391,6 +397,11 @@ for test_name in (
     if test_name not in test_source:
         failures.append('tests/test_scrape.py must retain %s' % test_name)
 for test_name in (
+        'test_product_rejects_non_string_source_urls_without_echoing_them',
+        'test_normalized_link_rejects_non_string_values'):
+    if test_name not in test_source:
+        failures.append('tests/test_scrape.py must retain %s' % test_name)
+for test_name in (
         'test_redirect_handler_has_explicit_hop_limits',
         'test_redirect_handler_allows_same_host_relative_redirect',
         'test_redirect_handler_allows_same_host_https_upgrade',
@@ -548,8 +559,11 @@ if any(re.search(r'malformed\s+product\s+links', document) is None
 if any(re.search(r'malformed\s+source\s+URL\s+authorities', document, re.IGNORECASE) is None
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the malformed source URL authority boundary')
-if 'all 63' not in readme:
-    failures.append('README.md must record the complete 63-test offline suite')
+if any('non-string URL guard' not in document
+       for document in (readme, vision, security, changes)):
+    failures.append('docs must describe the non-string URL guard')
+if 'all 65' not in readme:
+    failures.append('README.md must record the complete 65-test offline suite')
 if any('Scraper timeouts must be finite positive numbers before network setup.' not in document
        for document in (readme, vision, security, changes)):
     failures.append('docs must describe the finite positive timeout boundary')

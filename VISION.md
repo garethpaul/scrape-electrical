@@ -35,6 +35,7 @@ Priority:
 - Resolve product links against the source URL and reject non-web schemes
 - Reject product link credentials parsed from remote markup before persistence
 - Reject malformed product links without aborting later safe product rows
+- Keep a non-string URL guard ahead of source and product-link normalization
 - Pass database connection fields as structured driver parameters
 - Require a dry-run or complete database credentials for command-line runs
 - Keep database cursor cleanup ordered before connection teardown

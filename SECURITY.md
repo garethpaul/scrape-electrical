@@ -46,6 +46,8 @@ Remote product link credentials are rejected before database writes or dry-run
 output.
 Remote malformed product links are rejected at the row boundary without being
 logged and without stopping later safe product rows.
+The non-string URL guard rejects invalid source URL value types without
+echoing them and skips non-string product links before URL parsing.
 Source page URLs must also use HTTP(S) and include a host before the scraper
 opens them with `urllib2`.
 Scraper timeouts must be finite positive numbers before network setup.
