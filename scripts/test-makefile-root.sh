@@ -39,6 +39,10 @@ if ! "$SED" -n '1,2p' "$ROOT_DIR/tests/test_scrape.py" | "$GREP" -Eiq 'coding[=:
   printf '%s\n' 'tests/test_scrape.py must declare UTF-8 for Python 2 compilation' >&2
   exit 1
 fi
+if ! "$GREP" -Fxq '	$(PYTHON) -B "$$ROOT/scripts/check-docs-plans.py"' "$ROOT_DIR/Makefile"; then
+  printf '%s\n' 'Makefile must invoke the documentation and source contract gate as an exact unmodified recipe line' >&2
+  exit 1
+fi
 TEMP_ROOT=$("$MKTEMP" -d "${TMPDIR:-/tmp}/scrape-electrical-root-control-XXXXXX")
 ATTACKER_ROOT="$TEMP_ROOT/attacker-root"
 cleanup() {
@@ -165,6 +169,30 @@ run_case() {
     build|check|lint|verify)
       if ! assert_file_contains 'compile(open("tests/test_scrape.py", "rb").read(), "tests/test_scrape.py", "exec")' "$COMMAND_LOG"; then
         printf '%s\n' "$scenario $target skipped the Python 2 test-module compile gate" >&2
+        exit 1
+      fi
+      if ! assert_file_contains 'compile(open("scrape.py").read(), "scrape.py", "exec")' "$COMMAND_LOG"; then
+        printf '%s\n' "$scenario $target skipped the scraper compile gate" >&2
+        exit 1
+      fi
+      if ! assert_file_contains 'scripts/check-docs-plans.py' "$COMMAND_LOG"; then
+        printf '%s\n' "$scenario $target skipped the documentation and source contract gate" >&2
+        exit 1
+      fi
+      ;;
+  esac
+  case "$target" in
+    check|contract-test|verify)
+      if ! assert_file_contains 'scripts/test_workflow_contract.py' "$COMMAND_LOG"; then
+        printf '%s\n' "$scenario $target skipped the workflow contract mutation gate" >&2
+        exit 1
+      fi
+      ;;
+  esac
+  case "$target" in
+    check|test|verify)
+      if ! assert_file_contains 'unittest discover -s tests' "$COMMAND_LOG"; then
+        printf '%s\n' "$scenario $target skipped the offline unittest suite" >&2
         exit 1
       fi
       ;;
