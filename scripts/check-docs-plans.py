@@ -154,11 +154,26 @@ required_makefile_phrases = (
     '\t/bin/sh "$$ROOT/scripts/test-makefile-root.sh"',
     'verify: root-test lint contract-test test',
 )
+required_makefile_recipe_lines = (
+    '\t$(PYTHON) -B "$$ROOT/scripts/check-docs-plans.py"',
+    '\tcd "$$ROOT" && $(PYTHON) -B -c \'compile(open("scrape.py").read(), "scrape.py", "exec")\'',
+    '\tcd "$$ROOT" && $(PYTHON) -B -c \'compile(open("tests/test_scrape.py", "rb").read(), "tests/test_scrape.py", "exec")\'',
+    '\t$(PYTHON) -B "$$ROOT/scripts/test_workflow_contract.py"',
+    '\tcd "$$ROOT" && $(PYTHON) -B -m unittest discover -s tests',
+    '\t/bin/sh "$$ROOT/scripts/test-makefile-root.sh"',
+    '\t/bin/sh "$$ROOT/scripts/test-root-tool-portability.sh"',
+)
 if root_assignments != [root_declaration]:
     failures.append('Makefile must define exactly one safe repository-derived ROOT declaration')
 for phrase in required_makefile_phrases:
     if phrase not in makefile:
         failures.append('Makefile must preserve verification authority phrase %s' % phrase)
+makefile_lines = makefile.split('\n')
+for recipe_line in required_makefile_recipe_lines:
+    if recipe_line not in makefile_lines:
+        failures.append(
+            'Makefile must invoke verification runner as an exact unmodified recipe line %r'
+            % recipe_line)
 if 'command -v $(PYTHON)' in makefile or 'unavailable; skipping legacy Python 2 tests' in makefile:
     failures.append('Makefile must require Python 2 scraper verification instead of skipping it')
 
@@ -181,7 +196,17 @@ if os.path.isfile(root_test):
             '21 invalid-runtime, function, file-list, preload, or multi-Makefile rejections',
             'PYTHON must be exactly python2 or python3',
             'MAKEFILE_LIST must not be overridden',
-            'MAKEFILES must be empty'):
+            'MAKEFILES must be empty',
+            'skipped the scraper compile gate',
+            'skipped the documentation and source contract gate',
+            'skipped the workflow contract mutation gate',
+            'skipped the offline unittest suite',
+            'skipped the hostile PATH portability gate',
+            'Makefile must invoke the documentation and source contract gate as an exact unmodified recipe line',
+            '\'\t$(PYTHON) -B "$$ROOT/scripts/check-docs-plans.py"\'',
+            "assert_file_contains 'scripts/check-docs-plans.py' \"$COMMAND_LOG\"",
+            "assert_file_contains 'scripts/test_workflow_contract.py' \"$COMMAND_LOG\"",
+            "assert_file_contains 'unittest discover -s tests' \"$COMMAND_LOG\""):
         if evidence not in root_test_text:
             failures.append('%s must preserve %r' % (rel(root_test), evidence))
 else:
